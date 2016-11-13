@@ -9,9 +9,10 @@ cimport cython
 
 #cdef double[:,:] H = np.array([[1.,0.,-1.],[ 0.,  -1.,  1.],[ -1.,  1.,  0.]], dtype=np.dtype('d'))
 cdef double[:,:] H = np.array([[0,1.,-1.],[ 1.,  -1.,  0.],[ -1.,  0.,  1.]], dtype=np.dtype('d'))
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef tuple getLossM(np.ndarray[DTYPE_t, ndim=2] M,S):
+cpdef double getLossM(np.ndarray[DTYPE_t, ndim=2] M,S):
     """
     Returns loss on M with respect to list of triplets S: 1/len(S) \sum_{q in S} loss(M,q).
     Intuitively, q=[i,j,k] "agrees" with X if ||x_i - x_j||^2 < ||x_i - x_k||^2.
@@ -22,11 +23,12 @@ cdef tuple getLossM(np.ndarray[DTYPE_t, ndim=2] M,S):
     Usage:
         log_loss = getLoss(M,S)
     """
-    cdef double log_loss
+    cdef double log_loss;
     cdef int t;
     cdef int i,j,k
-    cdef int m = len(S)
+    cdef int m = len(S);
     for t in range(m):
+
         i,j,k = S[t]
         log_loss += c_log(1+c_exp(-(M[k,k] -2*M[i,k] + 2*M[i,j] - M[j,j])))
     return log_loss/m
@@ -83,13 +85,12 @@ def getFullGradientM(np.ndarray[DTYPE_t, ndim=2] M, S):
     cdef int n = M.shape[0]
     # compute Gradient
     cdef np.ndarray G = np.zeros((n,n), dtype=DTYPE)
-    cdef int m = len(S)
-    for i in range(m):
-        _getPartialGradientGram(M,G,S[i])
-    G = G/m
+    for i in range(len(S)):
+        _getPartialGradientM(M,G,S[i])
+    G = G/len(S)
     return G
 
-cdef tuple getLossX(np.ndarray[DTYPE_t, ndim=2] M,S):
+cpdef double getLossX(np.ndarray[DTYPE_t, ndim=2] X,S):
     """
     Returns loss on M with respect to list of triplets S: 1/len(S) \sum_{q in S} loss(X,q).
     Intuitively, q=[i,j,k] "agrees" with X if ||x_i - x_j||^2 < ||x_i - x_k||^2.
@@ -106,13 +107,13 @@ cdef tuple getLossX(np.ndarray[DTYPE_t, ndim=2] M,S):
     cdef int m = len(S)
     for t in range(m):
         i,j,k = S[t]
-        score = np.dot(X[k],X[k]) -2*dot(X[i],X[k]) + 2*dot(X[i],X[j]) - dot(X[j],X[j])
+        score = np.dot(X[k],X[k]) -2*np.dot(X[i],X[k]) + 2*np.dot(X[i],X[j]) - np.dot(X[j],X[j])
         log_loss += c_log(1+c_exp(-score))
     return log_loss/m
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline _getPartialGradientX(np.ndarray[DTYPE_t, ndim=2] M, np.ndarray[DTYPE_t, ndim=2] G, q):
+cdef inline _getPartialGradientX(np.ndarray[DTYPE_t, ndim=2] X, np.ndarray[DTYPE_t, ndim=2] G, q):
     """
     Internal function for computing the gradient of the logistic loss with respect to a query. Useful for SGD and full gradient computations.
     Given a curent embedding X, and a matrix G (used to aggregate partial gradients), updates G with the gradient of getLossX(X,q).
@@ -127,11 +128,10 @@ cdef inline _getPartialGradientX(np.ndarray[DTYPE_t, ndim=2] M, np.ndarray[DTYPE
     _getPartialGradientX(X,G,q)
     """
     cdef int i,j,k
-    cdef int n = M.shape[0]
     i,j,k=q 
     cdef int r
     cdef double t,tt 
-    cdef double score = np.dot(X[k],X[k]) -2*dot(X[i],X[k]) + 2*dot(X[i],X[j]) - dot(X[j],X[j])
+    cdef double score = np.dot(X[k],X[k]) -2*np.dot(X[i],X[k]) + 2*np.dot(X[i],X[j]) - np.dot(X[j],X[j])
     cdef double outer_loss = -1./(1.+c_exp(score))
     G[i] = G[i] - 2*outer_loss*(X[j] - X[k])
     G[j] = G[j] - 2*outer_loss*(X[i] - X[j])
@@ -169,7 +169,7 @@ def getFullGradientX(np.ndarray[DTYPE_t, ndim=2] X, S):
     cdef np.ndarray G = np.zeros((n,d), dtype=DTYPE)
     cdef int m = len(S)
     for i in range(m):
-        _getPartialGradientGram(X,G,S[i])
+        _getPartialGradientX(X,G,S[i])
     G = G/m
     return G
 
