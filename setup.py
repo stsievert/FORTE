@@ -10,7 +10,9 @@ except ImportError:
 import numpy as np
 
 setup(
-    name='FORTE: Faster Ordinal Triplet embedding',
+    name='FORTE',
+    description='Fast Ordinal Triplet Embedding',
+    url='http://github.com/lalitkumarj/FORTE',
     packages=find_packages(),
     ext_modules=cythonize(['FORTE/*.pyx',
                            'FORTE/algorithms/*.pyx',

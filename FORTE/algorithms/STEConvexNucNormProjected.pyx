@@ -4,7 +4,7 @@ sys.path.append('../..')
 import numpy as np
 cimport numpy as np
 import matplotlib.pyplot as plt
-#import blackbox
+import blackbox
 
 import FORTE.objectives.LogisticLoss as LL
 import FORTE.utils as utils
@@ -13,7 +13,7 @@ norm = np.linalg.norm
 floor = math.floor
 ceil = math.ceil
 
-#@blackbox.record
+@blackbox.record
 def computeEmbedding(int n, int d, S,
                      max_iter_GD=1000,
                      trace_norm=1,
@@ -39,18 +39,10 @@ def computeEmbedding(int n, int d, S,
     M = (M+M.transpose())/2
     cdef np.ndarray J = np.eye(n)-np.ones((n,n))*1./n
     M = np.dot(np.dot(J,M),J)
-    ts = time.time()
-    
     M_new = computeEmbeddingWithGD(M,S,d,
                                    max_iters=max_iter_GD,
                                    trace_norm=trace_norm,
                                    epsilon=epsilon)
-    te_gd = time.time()-ts        
-    #blackbox.log()
-    # print ("STEConvexNucNormProjected   emp_loss = %f,   "
-    #        "log_loss = %f,   duration=%f") % (emp_loss_new,
-    #                                           log_loss_new,
-    #                                           te_gd)
     return M_new
 
 def computeEmbeddingWithGD(np.ndarray M,S,int d,
@@ -127,6 +119,14 @@ def computeEmbeddingWithGD(np.ndarray M,S,int d,
         alpha = 1.2*alpha
         M = M_k
         emp_loss = utils.empirical_lossM(M,S)
+        blackbox.logdict({'iter':t,
+                          'emp_loss':emp_loss,
+                          'log_loss':log_loss,
+                          'Delta':Delta,
+                          'G_norm':norm_grad_sq,
+                          'alpha':alpha,
+                          'inner_t':inner_t})
+        blackbox.save(verbose=True)
         # print ("STEConvexNucNormProjected iter=%d,   emp_loss=%f,   log_loss=%f,   "
         #        "||d_k||=%f,   ||G||=%f,   alpha=%f,   i_t=%d") % (t,
         #                                                           emp_loss,

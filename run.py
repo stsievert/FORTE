@@ -1,5 +1,7 @@
+import time
 import FORTE.utils as utils
 from FORTE.algorithms import STEConvexNucNormProjected
+import blackbox
 import numpy as np
 import matplotlib.pyplot as plt
 def run(n, d, plot=False):
@@ -25,7 +27,7 @@ def run(n, d, plot=False):
     
     Mhat = STEConvexNucNormProjected.computeEmbedding(n,d,
                                                       Strain,
-                                                      max_iter_GD=2000,
+                                                      max_iter_GD=10000,
                                                       epsilon=0.000001,
                                                       trace_norm=trace_norm)
     emp_loss_train = utils.empirical_lossM(Mhat, Strain)
@@ -49,4 +51,19 @@ def run(n, d, plot=False):
         plt.show()
 
 if __name__=='__main__':
-    run(20, 2, plot=True)
+    blackbox.set_experiment('TimeTest')
+    blackbox.takeoff('n=30, d=2, m=1000 10 runs', force=True)
+    times = []
+    for i in range(10):
+        ts = time.time()
+        run(30, 2, plot=False)
+        times.append(time.time() - ts)
+    blackbox.land()
+    print 'average execution time', sum(times)/len(times)
+
+# n = 30, d = 2, 1000 triplets
+# blackbox no save verbose=True: 56.795
+# blackbox no save verbose=False: 54.0928
+# blackbox save verbose=True: 58.45
+# blackbox save verbose=False: 56.52:
+# no blackbox: 53.3
