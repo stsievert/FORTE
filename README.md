@@ -21,8 +21,8 @@ You will also need to install [`blackbox`](https://github.com/lalitkumarj/BlackB
 - Blake + Lalit: CK (maybe wait on this)
 - All: Decide on using utils score functions
 - All of us - demo run file? - STARTED
-- Blake: Factored Gradient for LogisticLoss using SGD and then GD
 
+- Blake: Factored Gradient for LogisticLoss using SGD and then Factored Gradient - DONE
 - Lalit: setup blackbox in setup.py DONE
 - Lalit: Nuclear Norm PGD - DONE
 - Blake: procrustes - DONE

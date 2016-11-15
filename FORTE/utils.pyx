@@ -76,8 +76,8 @@ def triplets(np.ndarray[DTYPE_t, ndim=2] X, int pulls, noise_func=None):
         S.append(q)   
     return S
 
-
-cpdef inline empirical_lossM(np.ndarray[DTYPE_t, ndim=2] M, S):
+########### cdef this
+cpdef empirical_lossM(np.ndarray[DTYPE_t, ndim=2] M, S):
     """
     Returns the empirical (0/1) loss of X on a set of triplets S. In other words, the proportion of triplets in S that are wrong. 
     Intuitively, q=[i,j,k] "agrees" with X if ||x_i - x_j||^2 < ||x_i - x_k||^2.
@@ -93,8 +93,8 @@ cpdef inline empirical_lossM(np.ndarray[DTYPE_t, ndim=2] M, S):
             loss += 1 
     return loss/m
 
-
-cpdef inline empirical_lossX(np.ndarray[DTYPE_t, ndim=2] X, S):
+########## cdef this
+cpdef empirical_lossX(np.ndarray[DTYPE_t, ndim=2] X, S):
     """
     Returns the empirical (0/1) loss of X on a set of triplets S. In other words, the proportion of triplets in S that are wrong. 
     Intuitively, q=[i,j,k] "agrees" with X if ||x_i - x_j||^2 < ||x_i - x_k||^2.
