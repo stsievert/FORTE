@@ -17,7 +17,8 @@ ceil = math.ceil
 def computeEmbedding(int n, int d, S,
                      max_iter_GD=1000,
                      trace_norm=1,
-                     epsilon=0.0001):
+                     epsilon=0.0001,
+                     verbose=False):
     """
     Computes STE MLE of a Gram matrix M using the triplets of S.
     S is a list of triplets such that for each q in S, q = [i,j,k] means that
@@ -50,7 +51,8 @@ def computeEmbeddingWithGD(np.ndarray M,S,int d,
                            trace_norm=None,
                            epsilon=0.0001,
                            c1=.00001,
-                           rho=0.5):
+                           rho=0.5,
+                           verbose=False):
     """
     Performs gradient descent with geometric Amarijo line search (with parameter c1)
     S is a list of triplets such that for each q in S, q = [i,j,k] means that
@@ -105,10 +107,17 @@ def computeEmbeddingWithGD(np.ndarray M,S,int d,
         progress[progress_idx] = log_loss
         progress_idx = (progress_idx + 1) % 10
         max_fn_dev = max(abs(progress-log_loss))
-        # if Delta<epsilon or G_norm<epsilon or max_fn_dev<epsilon:
-        #     #if verbose: print "Exiting: D_k=%f,  ||G||_F=%f,  Dfn=%f,  epsilon=%f,  alpha=%f" %(Delta,G_norm,max_fn_dev,epsilon,alpha)
-        #     break
-
+        if Delta<epsilon or G_norm<epsilon or max_fn_dev<epsilon:
+            #if verbose: print "Exiting: D_k=%f,  ||G||_F=%f,  Dfn=%f,  epsilon=%f,  alpha=%f" %(Delta,G_norm,max_fn_dev,epsilon,alpha)
+            blackbox.logdict({'iter':t,
+                          'emp_loss':emp_loss,
+                          'log_loss':log_loss,
+                          'Delta':Delta,
+                          'G_norm':norm_grad_sq,
+                          'alpha':alpha,
+                          'inner_t':inner_t})
+            blackbox.save(verbose=verbose)
+            break
         # This linesearch comes from Fukushima and Mine, "A generalized proximal point algorithm for certain non-convex minimization problems"
         inner_t = 0
         while log_loss_k > log_loss - c1*alpha*norm_grad_sq and inner_t < 10:
@@ -126,14 +135,7 @@ def computeEmbeddingWithGD(np.ndarray M,S,int d,
                           'G_norm':norm_grad_sq,
                           'alpha':alpha,
                           'inner_t':inner_t})
-        blackbox.save(verbose=True)
-        # print ("STEConvexNucNormProjected iter=%d,   emp_loss=%f,   log_loss=%f,   "
-        #        "||d_k||=%f,   ||G||=%f,   alpha=%f,   i_t=%d") % (t,
-        #                                                           emp_loss,
-        #                                                           log_loss,
-        #                                                           Delta,
-        #                                                           G_norm,
-        #                                                           alpha,inner_t)
+        blackbox.save(verbose=verbose)
     return M
 
 def euclidean_proj_l1ball(v, s=1):
