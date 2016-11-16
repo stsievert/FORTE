@@ -33,7 +33,7 @@ def random_query(n):
     return q
 
 
-cdef inline triplet_scoreM(np.ndarray[DTYPE_t, ndim=2] M,q):
+cpdef inline triplet_scoreM(np.ndarray[DTYPE_t, ndim=2] M,q):
     """
     Given M,q=[i,j,k] returns score = M_kk - M_jj - 2(M_ik-M_ij)
     If score > 0 then the triplet agrees with the embedding, otherwise it does not 
@@ -44,7 +44,7 @@ cdef inline triplet_scoreM(np.ndarray[DTYPE_t, ndim=2] M,q):
     i,j,k = q
     return M[k,k] -2*M[i,k] + 2*M[i,j] - M[j,j]
 
-cdef inline triplet_scoreX(np.ndarray[DTYPE_t, ndim=2] X,q):
+cpdef inline triplet_scoreX(np.ndarray[DTYPE_t, ndim=2] X,q):
     """
     Given X,q=[i,j,k] returns score = ||x_i - x_k||^2 - ||x_i - x_j||^2
     If score < 0 then the triplet agrees with the embedding, otherwise it does not 
