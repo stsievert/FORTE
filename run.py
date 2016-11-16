@@ -1,6 +1,6 @@
 import time
 import FORTE.utils as utils
-from FORTE.algorithms import NuclearNormProjected, FactoredGradient
+from FORTE.algorithms import NuclearNormProjected, FactoredGradient, FactoredGradientSGD
 import blackbox
 import numpy as np
 import matplotlib.pyplot as plt
@@ -79,14 +79,12 @@ def run_FG(n, d, plot=False):
 
     emp_loss_train = utils.empirical_lossX(Xhat, Strain)
     emp_loss_test = utils.empirical_lossX(Xhat, Stest)
-    _, Xpro, _ = utils.procrustes(Xtrue, Xhat)
     print ('Empirical Training loss = {},   '
-           'Empirical Test loss = {},   '
-           'Relative Error = {} ').format(emp_loss_train,
-                                          emp_loss_test,
-                                          (np.linalg.norm(Xtrue - Xpro, 'fro')**2 /
-                                           np.linalg.norm(Xtrue, 'fro')**2))
+           'Empirical Test loss = {},').format(emp_loss_train,
+                                          emp_loss_test)
+
     if plot:
+        _, Xpro, _ = utils.procrustes(Xtrue, Xhat)
         plt.figure(1)
         plt.subplot(121)
         plt.plot(*zip(*Xtrue), marker='o', color='r', ls='')
@@ -98,20 +96,20 @@ def run_FG(n, d, plot=False):
 if __name__ == '__main__':
     blackbox.set_experiment('TimeTest')
 
-    blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
-    times = []
-    for i in range(10):
-        ts = time.time()
-        run(30, 2, plot=False)
-        times.append(time.time() - ts)
-    print 'average execution time - NucNormProjected', sum(times) / len(times)
-    blackbox.land()
+    # blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
+    # times = []
+    # for i in range(10):
+    #     ts = time.time()
+    #     run(100, 2, plot=False)
+    #     times.append(time.time() - ts)
+    # print 'average execution time - NucNormProjected', sum(times) / len(times)
+    # blackbox.land()
 
     blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
     times = []
     for i in range(10):
         ts = time.time()
-        run_FG(30, 2, plot=False)
+        run_FG(100, 2, plot=False)
         times.append(time.time() - ts)
     print 'average execution time - FactoredGradient', sum(times) / len(times)
     blackbox.land()

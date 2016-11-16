@@ -43,14 +43,14 @@ def computeEmbedding(int n, int d,S,num_random_restarts=0,
     X_old = None
     cdef double emp_loss_old = float('inf')
     for restart in range(num_random_restarts + 1):
-        # if verbose:
-        #     print "Restart:{}/{}".format(restart, num_random_restarts)
+        if verbose:
+            print "Restart:{}/{}".format(restart, num_random_restarts)
         ts = time()
-        # X,_ = computeEmbeddingWithEpochSGD(n,d,S,
-        #                                      max_num_passes=max_num_passes_SGD,
-        #                                      max_norm=max_norm,
-        #                                      epsilon=epsilon,
-        #                                      verbose=verbose)
+        X,_ = computeEmbeddingWithEpochSGD(n,d,S,
+                                             max_num_passes=max_num_passes_SGD,
+                                             max_norm=max_norm,
+                                             epsilon=epsilon,
+                                             verbose=verbose)
         te_sgd = time()-ts
         ts = time()
         X_new,emp_loss_new,log_loss_new, _ = computeEmbeddingWithFG(X,S,
@@ -179,38 +179,34 @@ def computeEmbeddingWithFG(np.ndarray[DTYPE_t, ndim=2] X,S, max_iters=50,max_nor
     """
     cdef int n = X.shape[0]
     cdef int d = X.shape[1]
-    # cdef double alpha = 10.
+    cdef double alpha = 10.
     cdef double emp_loss, log_loss
     cdef int t = 0
     cdef int inner_t = 0
     cdef double log_loss_0 = LL.getLossX(X,S)
     cdef double rel_max_grad = float('inf')
-    # cdef double alpha = n/(2.*d)
-    cdef double alpha
 
     while t < max_iters:
         t = t + 1
-        # alpha = n/(norm(X, ord='fro') + (2.*d))
-        alpha = n/(2.*d)
         # get gradient and stopping-time statistics
         G = LL.getFullGradientX(X,S)
         rel_max_grad, norm_grad_sq_0 = relative_grad(G,X)
         if rel_max_grad < epsilon:
             break
         # perform backtracking line search
-        # log_loss_k = LL.getLossX(X-alpha*G,S)
-        # alpha = 1.1*alpha
+        log_loss_k = LL.getLossX(X-alpha*G,S)
+        alpha = 1.1*alpha
         inner_t = 0
-        # while log_loss_k > log_loss_0 - c1*alpha*norm_grad_sq_0:
-        #     alpha = alpha*rho
-        #     log_loss_k = LL.getLossX(X-alpha*G,S)
-        #     inner_t += 1
-        #     if inner_t > 10:
-        #         break
+        while log_loss_k > log_loss_0 - c1*alpha*norm_grad_sq_0:
+            alpha = alpha*rho
+            log_loss_k = LL.getLossX(X-alpha*G,S)
+            inner_t += 1
+            if inner_t > 10:
+                break
         X = X-alpha*G 
         log_loss_k = LL.getLossX(X,S)
-        # if inner_t == 0:
-        #     alpha = 2*alpha
+        if inner_t == 0:
+            alpha = 2*alpha
         log_loss_0 = log_loss_k     # save previous log_loss for next line search
         emp_loss = utils.empirical_lossX(X,S)           # not strictly necessary
         
