@@ -27,7 +27,7 @@ def run(n, d, plot=False):
     Strain = utils.triplets(Xtrue, m)
     Stest = utils.triplets(Xtrue, m)
 
-     Mhat = NuclearNormProjected.computeEmbedding(n, d,
+    Mhat = NuclearNormProjected.computeEmbedding(n, d,
                                                  Strain,
                                                  max_iter_GD=10000,
                                                  epsilon=0.000001,
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     times = []
     for i in range(10):
         ts = time.time()
-        run(30, 2, plot=True)
+        run(30, 2, plot=False)
         times.append(time.time() - ts)
     print 'average execution time - NucNormProjected', sum(times) / len(times)
     blackbox.land()
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     times = []
     for i in range(10):
         ts = time.time()
-        run_FG(30, 2, plot=True)
+        run_FG(30, 2, plot=False)
         times.append(time.time() - ts)
     print 'average execution time - FactoredGradient', sum(times) / len(times)
     blackbox.land()

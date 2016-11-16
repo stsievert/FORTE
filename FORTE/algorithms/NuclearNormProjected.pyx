@@ -43,7 +43,8 @@ def computeEmbedding(int n, int d, S,
     M_new = computeEmbeddingWithGD(M,S,d,
                                    max_iters=max_iter_GD,
                                    trace_norm=trace_norm,
-                                   epsilon=epsilon)
+                                   epsilon=epsilon,
+                                   verbose=verbose)
     return M_new
 
 def computeEmbeddingWithGD(np.ndarray M,S,int d,
