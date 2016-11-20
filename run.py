@@ -1,6 +1,6 @@
 import time
 import FORTE.utils as utils
-from FORTE.algorithms import NuclearNormProjected, FactoredGradient, FactoredGradientSGD
+from FORTE.algorithms import NuclearNormProjected, FactoredGradient, FactoredGradientSGD, CrowdKernel
 import blackbox
 import numpy as np
 import matplotlib.pyplot as plt
@@ -68,6 +68,7 @@ def run_FG(n, d, plot=False):
     # Generate centered data points
     Xtrue = np.random.randn(n, d)
     Xtrue = Xtrue - 1. / n * np.dot(np.ones((n, n)), Xtrue)
+    max_norm = np.max([np.linalg.norm(Xtrue[i]) for i in range(Xtrue.shape[0])])
 
     Strain = utils.triplets(Xtrue, m)
     Stest = utils.triplets(Xtrue, m)
@@ -75,7 +76,50 @@ def run_FG(n, d, plot=False):
     Xhat = FactoredGradient.computeEmbedding(n, d, Strain,
                                              num_random_restarts=0,
                                              max_num_passes_SGD=16, max_iter_GD=50,
-                                             max_norm=1, epsilon=0.01, verbose=False)
+                                             max_norm=max_norm, epsilon=0.01, verbose=False)
+
+    emp_loss_train = utils.empirical_lossX(Xhat, Strain)
+    emp_loss_test = utils.empirical_lossX(Xhat, Stest)
+    print ('Empirical Training loss = {},   '
+           'Empirical Test loss = {},').format(emp_loss_train,
+                                          emp_loss_test)
+
+    if plot:
+        _, Xpro, _ = utils.procrustes(Xtrue, Xhat)
+        plt.figure(1)
+        plt.subplot(121)
+        plt.plot(*zip(*Xtrue), marker='o', color='r', ls='')
+        plt.subplot(122)
+        plt.plot(*zip(*Xpro), marker='o', color='b', ls='')
+
+        plt.show()
+
+def run_CK(n, d, plot=False):
+    """
+    Creates random data and finds an embedding.
+    Inputs:
+    n: The number of points
+    d: The number of dimensions
+    plot: Whether to plot the points
+    """
+    n = n
+    d = d
+    m = 10 * n * d * np.log(n)  # number of labels
+
+    # Generate centered data points
+    Xtrue = np.random.randn(n, d)
+    Xtrue = Xtrue - 1. / n * np.dot(np.ones((n, n)), Xtrue)
+
+    max_norm = np.max([np.linalg.norm(Xtrue[i]) for i in range(Xtrue.shape[0])])
+
+    Strain = utils.triplets(Xtrue, m)
+    Stest = utils.triplets(Xtrue, m)
+
+    Xhat,_ = CrowdKernel.computeEmbedding(n, d, Strain,
+                                            mu=0.05,
+                                            num_random_restarts=0,
+                                            max_num_passes_SGD=16, max_iter_GD=50,
+                                            max_norm=1., epsilon=0.01, verbose=True)
 
     emp_loss_train = utils.empirical_lossX(Xhat, Strain)
     emp_loss_test = utils.empirical_lossX(Xhat, Stest)
@@ -105,13 +149,13 @@ if __name__ == '__main__':
     # print 'average execution time - NucNormProjected', sum(times) / len(times)
     # blackbox.land()
 
-    blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
+    blackbox.takeoff('n=30, d=2, m=1000 10 runs, CK', force=True)
     times = []
-    for i in range(10):
+    for i in range(1):
         ts = time.time()
-        run_FG(100, 2, plot=False)
+        run_CK(100, 2, plot=False)
         times.append(time.time() - ts)
-    print 'average execution time - FactoredGradient', sum(times) / len(times)
+    print 'average execution time - CK', sum(times) / len(times)
     blackbox.land()
 
 
