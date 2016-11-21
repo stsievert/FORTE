@@ -109,11 +109,19 @@ cdef inline getGradient(np.ndarray[DTYPE_t, ndim=2]X, list S, double mu):
     cdef double log_loss = 0.
     for q in S:
         i,j,k = q
-        num = np.max(mu + M[k,k] - 2*M[k,i] + M[i,i], realmin)
-        den = np.max(2.*mu + M[k,k] - 2.*M[i,k] + 2.*M[i,i] - 2.*M[i,j] + M[j,j], realmin)
-        G[j] = G[j] + 2./den * (X[i]-X[j])
-        G[k] = G[k] + (2./num-2./den)*(X[k]-X[i])
-        G[i] = G[i] + 2./num * (X[i]-X[k])-2./den*(2.*X[i]-X[j]-X[k]) 
+        num = np.max(mu + np.linalg.norm(X[k] - X[i])*np.linalg.norm(X[k] - X[i]), realmin)
+        den = np.max(2.*mu + np.linalg.norm(X[k] - X[i])*np.linalg.norm(X[k] - X[i]) + np.linalg.norm(X[j] - X[i])*np.linalg.norm(X[j] - X[i]), realmin)
+        G[i] = G[i] + 2.*((X[k] - X[i])/num - (2.*X[i] - X[k] - X[j])/den)
+        G[j] = G[j] + 2.*(X[i] - X[j])/den
+        G[k] = G[k] + 2.*(1./num + 1./den)*(X[i] - X[k])
+
+
+
+        # num = np.max(mu + M[k,k] - 2*M[k,i] + M[i,i], realmin)
+        # den = np.max(2.*mu + M[k,k] - 2.*M[i,k] + 2.*M[i,i] - 2.*M[i,j] + M[j,j], realmin)
+        # G[j] = G[j] + 2./den * (X[i]-X[j])
+        # G[k] = G[k] + (2./num-2./den)*(X[k]-X[i])
+        # G[i] = G[i] + 2./num * (X[i]-X[k])-2./den*(2.*X[i]-X[j]-X[k]) 
         log_loss = log_loss + c_log(den) - c_log(num)
 
     log_loss = log_loss/m
@@ -123,20 +131,24 @@ cdef inline getGradient(np.ndarray[DTYPE_t, ndim=2]X, list S, double mu):
     muX = np.mean(X,0)
     cdef double avg_row_norm_sq = 0.
     cdef double avg_grad_row_norm_sq = 0.
-    cdef double max_grad_row_norm_sq = 0.
+    cdef double max_grad_row_norm_sq 
+    max_grad_row_norm_sq = 0.
     cdef double norm_grad_sq_0 = 0.
     cdef double row_norm_sq, grad_row_norm_sq
 
     for i in range(n):
         row_norm_sq = 0.
+        # row_norm_sq = np.linalg.norm(X[i] - muX)
         grad_row_norm_sq = 0.
+        # grad_row_norm_sq = np.linalg.norm(G[i])
         for j in range(d):
             row_norm_sq = row_norm_sq + (X[i,j]-muX[j])*(X[i,j]-muX[j])
             grad_row_norm_sq = grad_row_norm_sq + G[i,j]*G[i,j]
-            
+        # print(grad_row_norm_sq)    
         avg_row_norm_sq = avg_row_norm_sq + row_norm_sq/n
         avg_grad_row_norm_sq = avg_grad_row_norm_sq + grad_row_norm_sq/n
-        max_grad_row_norm_sq = np.max(max_grad_row_norm_sq,grad_row_norm_sq)
+        max_grad_row_norm_sq = np.maximum(max_grad_row_norm_sq,grad_row_norm_sq)
+    # print(max_grad_row_norm_sq)
 
     return G,log_loss,avg_grad_row_norm_sq,max_grad_row_norm_sq,avg_row_norm_sq
 

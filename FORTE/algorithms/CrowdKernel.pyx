@@ -162,11 +162,18 @@ def computeEmbeddingWithEpochSGD(int n, int d,S,double mu, max_num_passes_SGD=0,
 
         # take gradient step
         i,j,k = q
-        num = np.max(mu + norm(X[k]-X[i])*norm(X[k]-X[i]) , realmin)
-        den = np.max(2.*mu + norm(X[k]-X[i])*norm(X[k]-X[i]) + norm(X[i]-X[j])*norm(X[i]-X[j]), realmin)
-        grad_i = -1*(2./num * (X[i]-X[k])-2./den*(2.*X[i]-X[j]-X[k]))
-        grad_j = -1*(2./den * (X[i]-X[j]))
-        grad_k = -1*((2./num-2./den)*(X[k]-X[i]))
+        num = np.max(mu + norm(X[k] - X[i])*norm(X[k] - X[i]), realmin)
+        den = np.max(2.*mu + norm(X[k] - X[i])*norm(X[k] - X[i]) + norm(X[j] - X[i])*norm(X[j] - X[i]), realmin)
+        grad_i = 2.*((X[k] - X[i])/num - (2.*X[i] - X[k] - X[j])/den)
+        grad_j = 2.*(X[i] - X[j])/den
+        grad_k = 2.*(1./num + 1./den)*(X[i] - X[k])
+
+
+        # num = np.max(mu + norm(X[k]-X[i])*norm(X[k]-X[i]) , realmin)
+        # den = np.max(2.*mu + norm(X[k]-X[i])*norm(X[k]-X[i]) + norm(X[i]-X[j])*norm(X[i]-X[j]), realmin)
+        # grad_i = -1*(2./num * (X[i]-X[k])-2./den*(2.*X[i]-X[j]-X[k]))
+        # grad_j = -1*(2./den * (X[i]-X[j]))
+        # grad_k = -1*((2./num-2./den)*(X[k]-X[i]))
         
         X[i] = X[i] - a*grad_i/m 
         X[j] = X[j] - a*grad_j/m 
@@ -244,7 +251,6 @@ def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iter
         t=t+1
         # get gradient and stopping-time statistics
         ts = time.time()
-
         if rel_max_grad < epsilon:
             blackbox.logdict({'iter':t,
                   'emp_loss':emp_loss_k,
