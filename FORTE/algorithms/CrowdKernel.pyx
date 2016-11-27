@@ -162,22 +162,22 @@ def computeEmbeddingWithEpochSGD(int n, int d,S,double mu, max_num_passes_SGD=0,
 
         # take gradient step
         i,j,k = q
-        num = np.maximum(mu + norm(X[k] - X[i])*norm(X[k] - X[i]), realmin)
-        den = np.maximum(2.*mu + norm(X[k] - X[i])*norm(X[k] - X[i]) + norm(X[j] - X[i])*norm(X[j] - X[i]), realmin)
-        grad_i = 2.*((X[k] - X[i])/num - (2.*X[i] - X[k] - X[j])/den)
-        grad_j = 2.*(X[i] - X[j])/den
-        grad_k = 2.*(1./num + 1./den)*(X[i] - X[k])
+        # num = np.maximum(mu + norm(X[k] - X[i])*norm(X[k] - X[i]), realmin)
+        # den = np.maximum(2.*mu + norm(X[k] - X[i])*norm(X[k] - X[i]) + norm(X[j] - X[i])*norm(X[j] - X[i]), realmin)
+        # grad_i = 2.*((X[k] - X[i])/num - (2.*X[i] - X[k] - X[j])/den)
+        # grad_j = 2.*(X[i] - X[j])/den
+        # grad_k = 2.*(1./num + 1./den)*(X[i] - X[k])
 
 
-        # num = np.max(mu + norm(X[k]-X[i])*norm(X[k]-X[i]) , realmin)
-        # den = np.max(2.*mu + norm(X[k]-X[i])*norm(X[k]-X[i]) + norm(X[i]-X[j])*norm(X[i]-X[j]), realmin)
-        # grad_i = -1*(2./num * (X[i]-X[k])-2./den*(2.*X[i]-X[j]-X[k]))
-        # grad_j = -1*(2./den * (X[i]-X[j]))
-        # grad_k = -1*((2./num-2./den)*(X[k]-X[i]))
+        num = np.maximum(mu + norm(X[k]-X[i])*norm(X[k]-X[i]) , realmin)
+        den = np.maximum(2.*mu + norm(X[k]-X[i])*norm(X[k]-X[i]) + norm(X[i]-X[j])*norm(X[i]-X[j]), realmin)
+        grad_i = -1*(2./num * (X[i]-X[k])-2./den*(2.*X[i]-X[j]-X[k]))
+        grad_j = -1*(2./den * (X[i]-X[j]))
+        grad_k = -1*((2./num-2./den)*(X[k]-X[i]))
         
-        X[i] = X[i] - a*grad_i/m 
-        X[j] = X[j] - a*grad_j/m 
-        X[k] = X[k] - a*grad_k/m 
+        X[i] = X[i] - a*grad_i 
+        X[j] = X[j] - a*grad_j 
+        X[k] = X[k] - a*grad_k 
         
         # project back onto ball such that norm(X[i])<=max_norm
         for i in q:
@@ -234,6 +234,7 @@ def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iter
         max_norm = 10.*d
 
     alpha = .5*n
+    # alpha = 1.
     t = 0
     cdef double norm_grad_sq_0 = realmax
     cdef double emp_loss_0 = realmax
@@ -277,8 +278,8 @@ def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iter
             alpha = alpha*rho
             emp_loss_k,hinge_loss_k,log_loss_k = ck._getLoss(X-alpha*G,S)
             inner_t += 1
-            if inner_t > 10:
-                break
+            # if inner_t > 10:
+            #     break
         X  = X - alpha*G
 
         # project back onto ball such that norm(X[i])<=max_norm
@@ -299,6 +300,7 @@ def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iter
                   'G_norm':norm_grad_sq_0,
                   'rel_avg_grad':rel_avg_grad,
                   'rel_max_grad':rel_max_grad,
+                  'inner_t': inner_t,
                   'alpha':alpha})
         blackbox.save(verbose=verbose)
     return X,emp_loss_k,hinge_loss_k,log_loss_k,rel_max_grad

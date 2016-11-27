@@ -52,7 +52,7 @@ cdef inline _getLoss(np.ndarray[DTYPE_t, ndim=2] X,list S):
     for i in range(m):
         q = S[i]
         loss_ijk = _getTripletScore(X,q)
-        hinge_loss = hinge_loss + max(0.,1. - loss_ijk)
+        hinge_loss = hinge_loss + np.maximum(0.,1. - loss_ijk)
         log_loss = log_loss - c_log(_getCrowdKernelTripletProbability(X[q[0]],X[q[1]],X[q[2]],.01))
 
         if loss_ijk < 0:
@@ -109,19 +109,29 @@ cdef inline getGradient(np.ndarray[DTYPE_t, ndim=2]X, list S, double mu):
     cdef double log_loss = 0.
     for q in S:
         i,j,k = q
-        num = np.max(mu + np.linalg.norm(X[k] - X[i])*np.linalg.norm(X[k] - X[i]), realmin)
-        den = np.max(2.*mu + np.linalg.norm(X[k] - X[i])*np.linalg.norm(X[k] - X[i]) + np.linalg.norm(X[j] - X[i])*np.linalg.norm(X[j] - X[i]), realmin)
-        G[i] = G[i] + 2.*((X[k] - X[i])/num - (2.*X[i] - X[k] - X[j])/den)
-        G[j] = G[j] + 2.*(X[i] - X[j])/den
-        G[k] = G[k] + 2.*(1./num + 1./den)*(X[i] - X[k])
+        num = np.maximum(mu + M[k,k] - 2*M[k,i] + M[i,i], realmin)
+        den = np.maximum(2.*mu + M[k,k] - 2.*M[i,k] + 2.*M[i,i] - 2.*M[i,j] + M[j,j], realmin)
+
+        # num = np.maximum(mu + np.linalg.norm(X[k]-X[i])*np.linalg.norm(X[k]-X[i]) , realmin)
+        # den = np.maximum(2.*mu + np.linalg.norm(X[k]-X[i])*np.linalg.norm(X[k]-X[i]) + np.linalg.norm(X[i]-X[j])*np.linalg.norm(X[i]-X[j]), realmin)
+        # num = np.maximum(mu + np.linalg.norm(X[k] - X[i])*np.linalg.norm(X[k] - X[i]), realmin)
+        # den = np.maximum(2.*mu + np.linalg.norm(X[k] - X[i])*np.linalg.norm(X[k] - X[i]) + np.linalg.norm(X[j] - X[i])*np.linalg.norm(X[j] - X[i]), realmin)
+        # G[i] = G[i] + 2.*((X[k] - X[i])/num - (2.*X[i] - X[k] - X[j])/den)
+        # G[j] = G[j] + 2.*(X[i] - X[j])/den
+        # G[k] = G[k] + 2.*(1./num + 1./den)*(X[i] - X[k])
+
+        G[i] = G[i] + 1*(2./num * (X[i]-X[k])-2./den*(2.*X[i]-X[j]-X[k]))
+        G[j] = G[j] + 1*(2./den * (X[i]-X[j]))
+        G[k] = G[k] + 1*((2./num-2./den)*(X[k]-X[i]))
 
 
 
-        # num = np.max(mu + M[k,k] - 2*M[k,i] + M[i,i], realmin)
-        # den = np.max(2.*mu + M[k,k] - 2.*M[i,k] + 2.*M[i,i] - 2.*M[i,j] + M[j,j], realmin)
+        # num = np.maximum(mu + M[k,k] - 2*M[k,i] + M[i,i], realmin)
+        # den = np.maximum(2.*mu + M[k,k] - 2.*M[i,k] + 2.*M[i,i] - 2.*M[i,j] + M[j,j], realmin)
         # G[j] = G[j] + 2./den * (X[i]-X[j])
         # G[k] = G[k] + (2./num-2./den)*(X[k]-X[i])
         # G[i] = G[i] + 2./num * (X[i]-X[k])-2./den*(2.*X[i]-X[j]-X[k]) 
+
         log_loss = log_loss + c_log(den) - c_log(num)
 
     log_loss = log_loss/m

@@ -119,7 +119,7 @@ def run_CK(n, d, plot=False):
                                             mu=0.05,
                                             num_random_restarts=0,
                                             max_num_passes_SGD=16, max_iter_GD=50,
-                                            max_norm=1., epsilon=0.01, verbose=True)
+                                            max_norm=1., epsilon=0.0001, verbose=True)
 
     emp_loss_train = utils.empirical_lossX(Xhat, Strain)
     emp_loss_test = utils.empirical_lossX(Xhat, Stest)
