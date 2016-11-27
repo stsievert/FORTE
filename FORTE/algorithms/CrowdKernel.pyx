@@ -162,8 +162,8 @@ def computeEmbeddingWithEpochSGD(int n, int d,S,double mu, max_num_passes_SGD=0,
 
         # take gradient step
         i,j,k = q
-        num = np.max(mu + norm(X[k] - X[i])*norm(X[k] - X[i]), realmin)
-        den = np.max(2.*mu + norm(X[k] - X[i])*norm(X[k] - X[i]) + norm(X[j] - X[i])*norm(X[j] - X[i]), realmin)
+        num = np.maximum(mu + norm(X[k] - X[i])*norm(X[k] - X[i]), realmin)
+        den = np.maximum(2.*mu + norm(X[k] - X[i])*norm(X[k] - X[i]) + norm(X[j] - X[i])*norm(X[j] - X[i]), realmin)
         grad_i = 2.*((X[k] - X[i])/num - (2.*X[i] - X[k] - X[j])/den)
         grad_j = 2.*(X[i] - X[j])/den
         grad_k = 2.*(1./num + 1./den)*(X[i] - X[k])
