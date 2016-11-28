@@ -53,17 +53,16 @@ def computeEmbedding(int n, int d, S, mu=.01, num_random_restarts=0,max_num_pass
         
         print "Epoch SGD"
         ts = time.time()
-        X_new,acc = computeEmbeddingWithEpochSGD(n,d,S,mu,max_num_passes_SGD=max_num_passes_SGD,epsilon=0.,verbose=verbose)
+        X,acc = computeEmbeddingWithEpochSGD(n,d,S,mu,max_num_passes_SGD=max_num_passes_SGD,epsilon=0.,verbose=verbose)
         te_sgd = time.time()-ts
         
         print "Gradient Descent"
         ts = time.time()
-        # X = np.random.rand(n,d)
-        # X_new, emp_loss_new, log_loss_new, hinge_loss_new, acc_new = computeEmbeddingWithGD(X, S, mu, 
-        #                                                                                     max_iters=max_iter_GD, 
-        #                                                                                     max_norm=max_norm, 
-        #                                                                                     epsilon=epsilon, 
-        #                                                                                     verbose=verbose)
+        X_new, emp_loss_new, log_loss_new, hinge_loss_new, acc_new = computeEmbeddingWithGD(X, S, mu, 
+                                                                                            max_iters=max_iter_GD, 
+                                                                                            max_norm=max_norm, 
+                                                                                            epsilon=epsilon, 
+                                                                                            verbose=verbose)
         emp_loss_new,hinge_loss_new,log_loss_new = ck._getLoss(X_new,S)
         te_gd = time.time()-ts
 
@@ -137,7 +136,6 @@ def computeEmbeddingWithEpochSGD(int n, int d,S,double mu, max_num_passes_SGD=0,
         if t_e % epoch_length == 0:
             a = a*0.5
             epoch_length = 2*epoch_length
-            t_e = 0
 
             if epsilon>0 or verbose:
                 # get losses
@@ -157,19 +155,13 @@ def computeEmbeddingWithEpochSGD(int n, int d,S,double mu, max_num_passes_SGD=0,
                 blackbox.save(verbose=verbose)
                 if rel_max_grad < epsilon:
                     break
+            t_e = 0
 
         # get random triplet uniformly at random
         q = S[np.random.randint(m)]
 
         # take gradient step
         i,j,k = q
-        # num = np.maximum(mu + norm(X[k] - X[i])*norm(X[k] - X[i]), realmin)
-        # den = np.maximum(2.*mu + norm(X[k] - X[i])*norm(X[k] - X[i]) + norm(X[j] - X[i])*norm(X[j] - X[i]), realmin)
-        # grad_i = 2.*((X[k] - X[i])/num - (2.*X[i] - X[k] - X[j])/den)
-        # grad_j = 2.*(X[i] - X[j])/den
-        # grad_k = 2.*(1./num + 1./den)*(X[i] - X[k])
-
-
         num = np.maximum(mu + norm(X[k]-X[i])*norm(X[k]-X[i]) , realmin)
         den = np.maximum(2.*mu + norm(X[k]-X[i])*norm(X[k]-X[i]) + norm(X[i]-X[j])*norm(X[i]-X[j]), realmin)
         grad_i = -1*(2./num * (X[i]-X[k])-2./den*(2.*X[i]-X[j]-X[k]))
@@ -235,7 +227,6 @@ def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iter
         max_norm = 10.*d
 
     alpha = .5*n
-    # alpha = 1.
     t = 0
     cdef double norm_grad_sq_0 = realmax
     cdef double emp_loss_0 = realmax
@@ -279,8 +270,6 @@ def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iter
             alpha = alpha*rho
             emp_loss_k,hinge_loss_k,log_loss_k = ck._getLoss(X-alpha*G,S)
             inner_t += 1
-            # if inner_t > 10:
-            #     break
         X  = X - alpha*G
 
         # project back onto ball such that norm(X[i])<=max_norm
