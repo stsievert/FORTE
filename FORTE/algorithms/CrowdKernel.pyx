@@ -42,7 +42,7 @@ def computeEmbedding(int n, int d, S, mu=.01, num_random_restarts=0,max_num_pass
     if max_num_passes_SGD==0:
         max_num_passes_SGD = 32
     
-    cdef np.ndarray[DTYPE_t, ndim=2] X_old, X_new
+    cdef np.ndarray[DTYPE_t, ndim=2] X_old, X, X_new
     X_old = np.random.rand(n,d)
     cdef double emp_loss_old = realmax
     cdef double ts, te_sgd, acc, emp_loss_new, log_loss_new, hinge_loss_new, acc_new, te_gd
@@ -53,16 +53,17 @@ def computeEmbedding(int n, int d, S, mu=.01, num_random_restarts=0,max_num_pass
         
         print "Epoch SGD"
         ts = time.time()
-        X,acc = computeEmbeddingWithEpochSGD(n,d,S,mu,max_num_passes_SGD=max_num_passes_SGD,epsilon=0.,verbose=verbose)
+        X_new,acc = computeEmbeddingWithEpochSGD(n,d,S,mu,max_num_passes_SGD=max_num_passes_SGD,epsilon=0.,verbose=verbose)
         te_sgd = time.time()-ts
         
         print "Gradient Descent"
         ts = time.time()
-        X_new, emp_loss_new, log_loss_new, hinge_loss_new, acc_new = computeEmbeddingWithGD(X, S, mu, 
-                                                                                            max_iters=max_iter_GD, 
-                                                                                            max_norm=max_norm, 
-                                                                                            epsilon=epsilon, 
-                                                                                            verbose=verbose)
+        # X = np.random.rand(n,d)
+        # X_new, emp_loss_new, log_loss_new, hinge_loss_new, acc_new = computeEmbeddingWithGD(X, S, mu, 
+        #                                                                                     max_iters=max_iter_GD, 
+        #                                                                                     max_norm=max_norm, 
+        #                                                                                     epsilon=epsilon, 
+        #                                                                                     verbose=verbose)
         emp_loss_new,hinge_loss_new,log_loss_new = ck._getLoss(X_new,S)
         te_gd = time.time()-ts
 
@@ -71,7 +72,7 @@ def computeEmbedding(int n, int d, S, mu=.01, num_random_restarts=0,max_num_pass
             emp_loss_old = emp_loss_new
 
         if verbose:
-            print "restart %d:   emp_loss = %f,   hinge_loss = %f,   duration=%f+%f" %(num_restarts,emp_loss_new,hinge_loss_new,te_sgd,te_gd)
+            print "restart %d:   emp_loss = %f,   hinge_loss = %f,   duration=%f+%f" %(num_restarts,emp_loss_new,hinge_loss_new,te_sgd,0)
 
 
     return X_old, emp_loss_old

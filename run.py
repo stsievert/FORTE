@@ -118,7 +118,7 @@ def run_CK(n, d, plot=False):
     Xhat,_ = CrowdKernel.computeEmbedding(n, d, Strain,
                                             mu=0.05,
                                             num_random_restarts=0,
-                                            max_num_passes_SGD=16, max_iter_GD=50,
+                                            max_num_passes_SGD=32, max_iter_GD=75,
                                             max_norm=1., epsilon=0.0001, verbose=True)
 
     emp_loss_train = utils.empirical_lossX(Xhat, Strain)
@@ -153,7 +153,7 @@ if __name__ == '__main__':
     times = []
     for i in range(1):
         ts = time.time()
-        run_CK(100, 2, plot=False)
+        run_CK(100, 2, plot=True)
         times.append(time.time() - ts)
     print 'average execution time - CK', sum(times) / len(times)
     blackbox.land()
