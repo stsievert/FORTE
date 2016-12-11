@@ -85,8 +85,6 @@ def computeEmbeddingWithGD(np.ndarray M,S,int d,
     cdef double rel_max_grad, log_loss, log_loss_k, norm_grad_sq; 
     cdef double Delta, G_norm, max_fn_dev;
     
-    cdef np.ndarray progress = np.random.rand(10)
-    cdef int progress_idx = 0
     while t < max_iters:
         t+=1
         # get gradient and stopping-time statistics
@@ -94,21 +92,16 @@ def computeEmbeddingWithGD(np.ndarray M,S,int d,
         normG = norm(G, axis=0)
         normM = norm(M, axis=0)
         rel_max_grad = np.sqrt( max(normG)/ sum(normM)/n)
-        if rel_max_grad < epsilon:
-            break
-        # perform backtracking line search
         log_loss = LL.getLossM(M,S)
         norm_grad_sq = sum(normG)                             
 
+        # perform backtracking line search
         M_k = projected(M-alpha*G, trace_norm)
         log_loss_k = LL.getLossM( M_k , S)
         d_k = M_k - M
 
         Delta = norm(d_k, ord='fro')
-        progress[progress_idx] = log_loss
-        progress_idx = (progress_idx + 1) % 10
-        max_fn_dev = max(abs(progress-log_loss))
-        if Delta<epsilon or rel_max_grad<epsilon or max_fn_dev<epsilon:
+        if rel_max_grad<epsilon or Delta<epsilon:# or max_fn_dev<epsilon:
             blackbox.logdict({'iter':t,
                           'emp_loss':emp_loss,
                           'log_loss':log_loss,

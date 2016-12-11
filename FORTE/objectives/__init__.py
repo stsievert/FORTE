@@ -1,2 +1,4 @@
-__all__ = ['LogisticLoss']
+__all__ = ['LogisticLoss', 'CrowdKernelLoss']
 from . import LogisticLoss
+from . import CrowdKernelLoss
+from . import HingeLoss

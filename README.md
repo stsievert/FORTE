@@ -18,11 +18,11 @@ You will also need to install [`blackbox`](https://github.com/lalitkumarj/BlackB
 - Lalit: Fix naming conventions (too many gets?)
 - Blake: document naming convention, code convention
 - Ari: Hinge loss objectives file
-- Blake + Lalit: CK (maybe wait on this)
 - All: Decide on using utils score functions
 - All of us - demo run file? - STARTED
 
 - Blake: Factored Gradient for LogisticLoss using SGD and then Factored Gradient - DONE
+- Blake + Lalit: CK (maybe wait on this) - DONE
 - Lalit: setup blackbox in setup.py DONE
 - Lalit: Nuclear Norm PGD - DONE
 - Blake: procrustes - DONE

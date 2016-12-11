@@ -8,7 +8,7 @@ from scipy.sparse.linalg import eigsh
 import matplotlib.pyplot as plt
 import blackbox
 
-import FORTE.objectives.LogisticLoss as LL
+import FORTE.objectives.HingeLoss as HL
 import FORTE.utils as utils
 
 
@@ -60,14 +60,14 @@ def computeEmbedding(int n, int d, S,
                                         verbose=verbose)
         te_gd = time.time()-ts
         emp_loss_new = utils.empirical_lossM(M_new, S)
-        log_loss = LL.getLossM(M_new, S)
+        hinge_loss = HL.getLossM(M_new, S)
         if emp_loss_new < emp_loss_old:
             M_old = M_new
             emp_loss_old = emp_loss_new
         
             blackbox.logdict({'restart':restart,
                               'emp_loss':emp_loss_new,
-                              'log_loss':LL.getLossM(M_new, S),
+                              'hinge_loss':HL.getLossM(M_new, S),
                               'duration':te_gd})
             blackbox.save(verbose=verbose)
     return M_old
@@ -77,7 +77,7 @@ def computeEmbeddingWithGD(np.ndarray M, S,
                            max_iters=50,
                            max_norm=1.,
                            epsilon=0.01,
-                           c1=.000001,
+                           c1=.00001,
                            rho=0.5,
                            verbose=False):
     """
@@ -106,54 +106,57 @@ def computeEmbeddingWithGD(np.ndarray M, S,
         M = computeEmbeddingWithGD(M,S, 2)
     """
     cdef int n = M.shape[0]
-    cdef double alpha = 1
+    cdef double alpha = .1
     cdef int t, inner_t;
     
     cdef np.ndarray G, M_k, d_k, normG, normM;
-    cdef double emp_loss, log_loss, rel_max_grad 
+    cdef double emp_loss, hinge_loss, rel_max_grad 
 
     while t < max_iters:
         t+=1
         # get gradient and stopping-time statistics
-        G = LL.getFullGradientM(M, S)
+        G = HL.getFullGradientM(M, S)
         normG = norm(G, axis=0)
         normM = norm(M, axis=0)
         rel_max_grad = np.sqrt( max(normG)/ sum(normM)/n)
         # perform backtracking line search
-        log_loss = LL.getLossM(M,S)
+        hinge_loss = HL.getLossM(M,S)
         norm_grad_sq = sum(normG)
-
-        alpha = 1.3*alpha
-        M_k = projected(M-alpha*G, d)
-        log_loss_k = LL.getLossM( M_k , S)
+        
+        M_k = projected(M+alpha*G, d)
+        hinge_loss_k = HL.getLossM(M_k , S)
         d_k = M_k - M
         Delta = norm(d_k, 'fro')        
-
-        if Delta<epsilon or rel_max_grad<epsilon:
-            blackbox.logdict({'iter':t,
-                              'emp_loss':emp_loss,
-                              'log_loss':log_loss,
-                              'Delta':Delta,
-                              'G_norm':norm_grad_sq,
-                              'inner_t':inner_t})
-            blackbox.save(verbose=verbose)
-            break
-
-        beta = rho
-        inner_t = 0
-        while log_loss_k > log_loss - c1*alpha*norm_grad_sq and inner_t < 10:
-            beta = beta*beta
-            log_loss_k = LL.getLossM(M + beta*d_k ,S)
-            inner_t += 1
-        if inner_t > 0:
-            alpha = max(.1, alpha*rho)
-        M = projected(M+beta*d_k, d)
+        M=M_k
+                # if Delta<epsilon or rel_max_grad<epsilon:
+        #     blackbox.logdict({'iter':t,
+        #                       'emp_loss':emp_loss,
+        #                       'hinge_loss':hinge_loss,
+        #                       'Delta':Delta,
+        #                       'G_norm':norm_grad_sq,
+        #                       'inner_t':inner_t})
+        #     blackbox.save(verbose=verbose)
+        #     break
+        
+#         beta = rho
+#         inner_t = 0
+#         while hinge_loss_k > hinge_loss - c1*alpha*norm_grad_sq and inner_t < 10:
+#             beta = beta*beta
+#             hinge_loss_k = HL.getLossM(M + beta*d_k ,S)
+#             inner_t += 1
+#         if inner_t > 0:
+#             alpha = max(100, alpha*rho)
+#         else:
+#             alpha = 1.2*alpha
+# #        print beta
+#         M = projected(M+beta*d_k, d)
 
         blackbox.logdict({'iter':t,
                           'emp_loss':utils.empirical_lossM(M, S),
-                          'log_loss':log_loss,
+                          'hinge_loss':hinge_loss,
                           'Delta':Delta,
                           'G_norm':norm_grad_sq,
+                          'alpha':alpha,
                           'inner_t':inner_t})
         blackbox.save(verbose=verbose)    
     return M
