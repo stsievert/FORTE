@@ -5,8 +5,8 @@ It is best to work in a `virtualenv`. It is assumed that you have the standard `
 
 From the top level directory:
 ```python
+python setup.py develop
 python setup.py install
-python setup.py build_ext --inplace
 ```
 
 You will also need to install [`blackbox`](https://github.com/lalitkumarj/BlackBox) which serves as the logger.

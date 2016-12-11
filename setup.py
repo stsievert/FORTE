@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+from setuptools.extension import Extension
 try:
     from Cython.Build import cythonize
 except ImportError:
@@ -13,7 +14,9 @@ setup(
     name='FORTE',
     description='Fast Ordinal Triplet Embedding',
     url='http://github.com/lalitkumarj/FORTE',
-    packages=find_packages(),
+    packages=['FORTE',
+              'FORTE/algorithms',
+              'FORTE/objectives'],
     ext_modules=cythonize(['FORTE/*.pyx',
                            'FORTE/algorithms/*.pyx',
                            'FORTE/objectives/*.pyx']),

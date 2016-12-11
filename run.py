@@ -1,6 +1,6 @@
 import time
 import FORTE.utils as utils
-from FORTE.algorithms import NuclearNormProjected, FactoredGradient, FactoredGradientSGD
+from FORTE.algorithms import NuclearNormPGD, FactoredGradient, FactoredGradientSGD, RankdPGD
 import blackbox
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,22 +16,23 @@ def run(n, d, plot=False):
     """
     n = n
     d = d
-    m = 10 * n * d * np.log(n)  # number of labels
+    m = n*n*n #20 * n * d * np.log(n)  # number of labels
 
     # Generate centered data points
     Xtrue = np.random.randn(n, d)
     Xtrue = Xtrue - 1. / n * np.dot(np.ones((n, n)),  Xtrue)
     Mtrue = np.dot(Xtrue, Xtrue.transpose())
 
-    trace_norm = np.trace(Mtrue)
     Strain = utils.triplets(Xtrue, m)
     Stest = utils.triplets(Xtrue, m)
-
-    Mhat = NuclearNormProjected.computeEmbedding(n, d,
-                                                 Strain,
-                                                 max_iter_GD=10000,
-                                                 epsilon=0.000001,
-                                                 trace_norm=trace_norm)
+    ts = time.time()
+    Mhat = RankdPGD.computeEmbedding(n, d,
+                                     Strain,
+                                     max_iter_GD=100,
+                                     num_random_restarts=2,
+                                     epsilon=0.00001,
+                                     verbose=True)
+    print "Duration", time.time()-ts
     emp_loss_train = utils.empirical_lossM(Mhat, Strain)
     emp_loss_test = utils.empirical_lossM(Mhat, Stest)
     print ('Empirical Training loss = {},   '
@@ -94,25 +95,25 @@ def run_FG(n, d, plot=False):
         plt.show()
 
 if __name__ == '__main__':
-    blackbox.set_experiment('TimeTest')
+    #blackbox.set_experiment('TimeTest')
+
+    #blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
+    times = []
+    for i in range(1):
+        ts = time.time()
+        run(60, 2, plot=True)
+        times.append(time.time() - ts)
+    print 'average execution time - NucNormProjected', sum(times) / len(times)
+    #blackbox.land()
 
     # blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
     # times = []
     # for i in range(10):
     #     ts = time.time()
-    #     run(100, 2, plot=False)
+    #     run_FG(100, 2, plot=False)
     #     times.append(time.time() - ts)
-    # print 'average execution time - NucNormProjected', sum(times) / len(times)
+    # print 'average execution time - FactoredGradient', sum(times) / len(times)
     # blackbox.land()
-
-    blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
-    times = []
-    for i in range(10):
-        ts = time.time()
-        run_FG(100, 2, plot=False)
-        times.append(time.time() - ts)
-    print 'average execution time - FactoredGradient', sum(times) / len(times)
-    blackbox.land()
 
 
 # n = 30, d = 2, 1000 triplets

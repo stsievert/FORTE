@@ -1,13 +1,13 @@
-from __future__ import division
+import cython
 import numpy as np
 cimport numpy as np
 from libc.math cimport exp as c_exp
 from libc.math cimport log as c_log
 DTYPE = np.float64
 ctypedef np.float64_t DTYPE_t
-cimport cython
 
-#cdef double[:,:] H = np.array([[1.,0.,-1.],[ 0.,  -1.,  1.],[ -1.,  1.,  0.]], dtype=np.dtype('d'))
+
+
 cdef double[:,:] H = np.array([[0,1.,-1.],[ 1.,  -1.,  0.],[ -1.,  0.,  1.]], dtype=np.dtype('d'))
 
 @cython.boundscheck(False)

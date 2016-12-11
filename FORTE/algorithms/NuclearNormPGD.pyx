@@ -59,6 +59,7 @@ def computeEmbeddingWithGD(np.ndarray M,S,int d,
     S is a list of triplets such that for each q in S, q = [i,j,k] means that
     object i should be closer to j than k.
 
+    Implements line search algorithm 3.1 of page 37 in Nocedal and Wright (2006)
     Inputs:
         (numpy.ndarray) M : input Gram matrix
         (list [(int) i, (int) j,(int) k]) S : list of triplets, i,j,k must be in [n]. 
@@ -75,7 +76,7 @@ def computeEmbeddingWithGD(np.ndarray M,S,int d,
     Usage:
         M = computeEmbeddingWithGD(Mtrue,S,d)
     """
-    cdef int n  = M.shape[0] 
+    cdef int n  = M.shape[0]
     cdef double alpha = 100
     cdef int t = 0
 
@@ -104,12 +105,10 @@ def computeEmbeddingWithGD(np.ndarray M,S,int d,
         d_k = M_k - M
 
         Delta = norm(d_k, ord='fro')
-        G_norm = np.sqrt(norm_grad_sq)
         progress[progress_idx] = log_loss
         progress_idx = (progress_idx + 1) % 10
         max_fn_dev = max(abs(progress-log_loss))
-        if Delta<epsilon or G_norm<epsilon or max_fn_dev<epsilon:
-            #if verbose: print "Exiting: D_k=%f,  ||G||_F=%f,  Dfn=%f,  epsilon=%f,  alpha=%f" %(Delta,G_norm,max_fn_dev,epsilon,alpha)
+        if Delta<epsilon or rel_max_grad<epsilon or max_fn_dev<epsilon:
             blackbox.logdict({'iter':t,
                           'emp_loss':emp_loss,
                           'log_loss':log_loss,
@@ -119,7 +118,7 @@ def computeEmbeddingWithGD(np.ndarray M,S,int d,
                           'inner_t':inner_t})
             blackbox.save(verbose=verbose)
             break
-        # This linesearch comes from Fukushima and Mine, "A generalized proximal point algorithm for certain non-convex minimization problems"
+
         inner_t = 0
         while log_loss_k > log_loss - c1*alpha*norm_grad_sq and inner_t < 10:
             alpha = alpha*rho
