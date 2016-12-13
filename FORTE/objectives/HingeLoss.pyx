@@ -21,14 +21,14 @@ cpdef double getLossM(np.ndarray[DTYPE_t, ndim=2] M,S):
     Usage:
         loss = getLossM(M,S)
     """
-    cdef double loss=0;
+    cdef double loss=0.;
     cdef int t;
     cdef int i,j,k
     cdef int m = len(S);
     for t in range(m):
         i,j,k = S[t]
-        loss += max(0, 1-(M[k,k] -2*M[i,k] + 2*M[i,j] - M[j,j]))
-    return loss/m
+        loss = loss + max(0., 1.-(M[k,k] -2*M[i,k] + 2*M[i,j] - M[j,j]))/m
+    return loss
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

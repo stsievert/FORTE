@@ -1,5 +1,6 @@
 import cython
 import time, math, sys
+from NuclearNormPGD import projected as projected_nucNorm
 sys.path.append('../..')
 
 import numpy as np
@@ -57,6 +58,7 @@ def computeEmbedding(int n, int d, S,
                                         max_iters=max_iter_GD,
                                         max_norm=max_norm,
                                         epsilon=epsilon,
+                                        rho=np.sqrt(2.)/2.,
                                         verbose=verbose)
         te_gd = time.time()-ts
         emp_loss_new = utils.empirical_lossM(M_new, S)
@@ -78,7 +80,7 @@ def computeEmbeddingWithGD(np.ndarray M, S,
                            max_norm=1.,
                            epsilon=0.01,
                            c1=.00001,
-                           rho=0.5,
+                           rho=0.75,
                            verbose=False):
     """
     Performs gradient descent with geometric amarijo line search (with parameter c1)
@@ -106,11 +108,14 @@ def computeEmbeddingWithGD(np.ndarray M, S,
         M = computeEmbeddingWithGD(M,S, 2)
     """
     cdef int n = M.shape[0]
-    cdef double alpha = .1
+    cdef double alpha = 10.
     cdef int t, inner_t;
     
     cdef np.ndarray G, M_k, d_k, normG, normM;
-    cdef double emp_loss, hinge_loss, rel_max_grad 
+    cdef double emp_loss, hinge_loss, rel_max_grad
+    emp_loss = float('inf')
+    hinge_loss = float('inf')
+    rel_max_grad = float('inf') 
 
     while t < max_iters:
         t+=1
@@ -123,33 +128,45 @@ def computeEmbeddingWithGD(np.ndarray M, S,
         hinge_loss = HL.getLossM(M,S)
         norm_grad_sq = sum(normG)
         
-        M_k = projected(M+alpha*G, d)
+        M_k = projected(M-alpha*G, d)
         hinge_loss_k = HL.getLossM(M_k , S)
         d_k = M_k - M
         Delta = norm(d_k, 'fro')        
         M=M_k
-                # if Delta<epsilon or rel_max_grad<epsilon:
-        #     blackbox.logdict({'iter':t,
-        #                       'emp_loss':emp_loss,
-        #                       'hinge_loss':hinge_loss,
-        #                       'Delta':Delta,
-        #                       'G_norm':norm_grad_sq,
-        #                       'inner_t':inner_t})
-        #     blackbox.save(verbose=verbose)
-        #     break
+        if Delta<epsilon or rel_max_grad<epsilon:
+            print('Stopping conditions achieved')
+            blackbox.logdict({'iter':t,
+                              'emp_loss':emp_loss,
+                              'hinge_loss':hinge_loss,
+                              'Delta':Delta,
+                              'G_norm':norm_grad_sq,
+                              'inner_t':inner_t})
+            blackbox.save(verbose=verbose)
+            break
         
-#         beta = rho
-#         inner_t = 0
-#         while hinge_loss_k > hinge_loss - c1*alpha*norm_grad_sq and inner_t < 10:
-#             beta = beta*beta
-#             hinge_loss_k = HL.getLossM(M + beta*d_k ,S)
-#             inner_t += 1
-#         if inner_t > 0:
-#             alpha = max(100, alpha*rho)
-#         else:
-#             alpha = 1.2*alpha
-# #        print beta
-#         M = projected(M+beta*d_k, d)
+        inner_t = 0
+        while hinge_loss_k > hinge_loss - c1*alpha*norm_grad_sq and inner_t < 10:
+            alpha = alpha*rho
+            M_k = projected_nucNorm(M-alpha*G, d)
+            hinge_loss_k = HL.getLossM(M_k ,S)
+            inner_t += 1
+        M = M_k
+        if inner_t == 0:
+            alpha /= rho
+
+
+        # beta = rho
+        # inner_t = 0
+        # while hinge_loss_k > hinge_loss - c1*alpha*norm_grad_sq and inner_t < 10:
+        #     beta = beta*beta
+        #     hinge_loss_k = HL.getLossM(M + beta*d_k ,S)
+        #     inner_t += 1
+        # if inner_t > 0:
+        #     alpha = max(100, alpha*rho)
+        # else:
+        #     alpha = 1.2*alpha
+        # # print beta
+        # M = projected_nucNorm(M+beta*d_k, d)
 
         blackbox.logdict({'iter':t,
                           'emp_loss':utils.empirical_lossM(M, S),
@@ -157,7 +174,8 @@ def computeEmbeddingWithGD(np.ndarray M, S,
                           'Delta':Delta,
                           'G_norm':norm_grad_sq,
                           'alpha':alpha,
-                          'inner_t':inner_t})
+                          'inner_t':inner_t,
+                          'rel_max_grad':rel_max_grad})
         blackbox.save(verbose=verbose)    
     return M
 

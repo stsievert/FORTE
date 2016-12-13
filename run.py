@@ -10,6 +10,10 @@ import blackbox
 import numpy as np
 import matplotlib.pyplot as plt
 
+def logistic_noise(X, q):
+  score = utils.triplet_scoreX(X,q)
+  return 1./(1. + np.exp(-score))
+
 
 def run_RankdPGD(n, d, plot=False):
     """
@@ -66,6 +70,8 @@ def run_RankdPGDHingeLoss(n, d, plot=False):
     n = n
     d = d
     m = n*n*n
+    # noise_func = logistic_noise   # change it to logistic noise
+    noise_func = None
     # 20 * n * d * np.log(n)  # number of labels
 
     # Generate centered data points
@@ -73,16 +79,17 @@ def run_RankdPGDHingeLoss(n, d, plot=False):
     Xtrue = Xtrue - 1. / n * np.dot(np.ones((n, n)),  Xtrue)
     Mtrue = np.dot(Xtrue, Xtrue.transpose())
 
-    Strain = utils.triplets(Xtrue, m)
-    Stest = utils.triplets(Xtrue, m)
+    Strain = utils.triplets(Xtrue, m, noise_func=noise_func)
+    Stest = utils.triplets(Xtrue, m, noise_func=noise_func)
     Mhat = RankdPGDHingeLoss.computeEmbedding(n, d,
                                               Strain,
-                                              max_iter_GD=5000,
+                                              max_iter_GD=2000,
                                               num_random_restarts=0,
-                                              epsilon=0.00001,
+                                              epsilon=1e-10,
                                               verbose=True)
     emp_loss_train = utils.empirical_lossM(Mhat, Strain)
     emp_loss_test = utils.empirical_lossM(Mhat, Stest)
+    print('performance:')
     print ('Empirical Training loss = {},   '
            'Empirical Test loss = {},   '
            'Relative Error = {} ').format(emp_loss_train,
@@ -244,7 +251,7 @@ if __name__ == '__main__':
     blackbox.takeoff(('n=30, d=2, max_iters=200'
                       'epsilon=.00001, 5 runs, NucNorm'), force=True)
     times = []
-    for i in range(5):
+    for i in range(1):
         ts = time.time()
         run_RankdPGDHingeLoss(10, 2, plot=True)
         times.append(time.time() - ts)
