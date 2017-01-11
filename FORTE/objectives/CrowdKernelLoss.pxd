@@ -43,24 +43,17 @@ cdef inline _getLoss(np.ndarray[DTYPE_t, ndim=2] X,list S):
     cdef int d = X.shape[1]
     cdef int i
 
-    cdef double emp_loss = 0. # 0/1 loss
-    cdef double hinge_loss = 0. # hinge loss
     cdef double log_loss = 0. #log_loss in crowd kernel model
     cdef double loss_ijk
 
     for i in range(m):
         q = S[i]
         loss_ijk = _getTripletScore(X,q)
-        hinge_loss = hinge_loss + np.maximum(0.,1. - loss_ijk)
         log_loss = log_loss - c_log(_getCrowdKernelTripletProbability(X[q[0]],X[q[1]],X[q[2]],.01))
 
-        if loss_ijk < 0:
-           emp_loss = emp_loss + 1.
 
-    emp_loss = emp_loss/m
-    hinge_loss = hinge_loss/m
     log_loss = log_loss/m
-    return emp_loss, hinge_loss, log_loss
+    return log_loss
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

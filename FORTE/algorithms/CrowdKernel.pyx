@@ -38,14 +38,11 @@ def computeEmbedding(int n, int d, S, mu=.01, num_random_restarts=0,max_num_pass
         (numpy.ndarray) X : output embedding
         (float) gamma : Equal to a/b where a is max row norm of the gradient matrix and b is the avg row norm of the centered embedding matrix X. This is a means to determine how close the current solution is to the "best" solution.  
     """
-
-    if max_num_passes_SGD==0:
-        max_num_passes_SGD = 32
     
     cdef np.ndarray[DTYPE_t, ndim=2] X_old, X, X_new
     X_old = np.random.rand(n,d)
     cdef double emp_loss_old = realmax
-    cdef double ts, te_sgd, acc, emp_loss_new, log_loss_new, hinge_loss_new, acc_new, te_gd
+    cdef double ts, te_sgd, emp_loss_new, log_loss_new, te_gd
     cdef int num_restarts = -1
     
     while num_restarts < num_random_restarts:
@@ -53,17 +50,18 @@ def computeEmbedding(int n, int d, S, mu=.01, num_random_restarts=0,max_num_pass
         
         print "Epoch SGD"
         ts = time.time()
-        X,acc = computeEmbeddingWithEpochSGD(n,d,S,mu,max_num_passes_SGD=max_num_passes_SGD,epsilon=0.,verbose=verbose)
+        X = computeEmbeddingWithEpochSGD(n,d,S,mu,max_num_passes_SGD=max_num_passes_SGD,epsilon=0.,verbose=verbose)
         te_sgd = time.time()-ts
         
         print "Gradient Descent"
         ts = time.time()
-        X_new, emp_loss_new, log_loss_new, hinge_loss_new, acc_new = computeEmbeddingWithGD(X, S, mu, 
-                                                                                            max_iters=max_iter_GD, 
-                                                                                            max_norm=max_norm, 
-                                                                                            epsilon=epsilon, 
-                                                                                            verbose=verbose)
-        emp_loss_new,hinge_loss_new,log_loss_new = ck._getLoss(X_new,S)
+        X_new = computeEmbeddingWithGD(X, S, mu, 
+                                            max_iters=max_iter_GD, 
+                                            max_norm=max_norm, 
+                                            epsilon=epsilon, 
+                                            verbose=verbose)
+        emp_loss_new = utils.empirical_lossX(X_new, S)
+        log_loss_new = ck._getLoss(X_new,S)
         te_gd = time.time()-ts
 
         if emp_loss_new<emp_loss_old:
@@ -71,10 +69,10 @@ def computeEmbedding(int n, int d, S, mu=.01, num_random_restarts=0,max_num_pass
             emp_loss_old = emp_loss_new
 
         if verbose:
-            print "restart %d:   emp_loss = %f,   hinge_loss = %f,   duration=%f+%f" %(num_restarts,emp_loss_new,hinge_loss_new,te_sgd,0)
+            print "restart %d:   emp_loss = %f,   duration=%f+%f" %(num_restarts,emp_loss_new,te_sgd,0)
 
 
-    return X_old, emp_loss_old
+    return X_old
 
 def computeEmbeddingWithEpochSGD(int n, int d,S,double mu, max_num_passes_SGD=0,max_norm=0.,epsilon=0.01,a0=0.1,verbose=False):
     """
@@ -107,17 +105,14 @@ def computeEmbeddingWithEpochSGD(int n, int d,S,double mu, max_num_passes_SGD=0,
     """
     cdef int m = len(S)
     cdef int epoch_length, t, t_e, max_iters, i,j,k 
-    cdef double a, emp_loss,hinge_loss,log_loss, rel_max_grad, rel_avg_grad, num, den, norm_i
+    cdef double a, log_loss, rel_max_grad, rel_avg_grad, num, den, norm_i
     cdef np.ndarray[DTYPE_t, ndim=1] grad_i, grad_j, grad_k
 
     # norm of each object is equal to 1 in expectation
     cdef np.ndarray[DTYPE_t, ndim=2] X = np.random.randn(n,d)*.0001
     cdef np.ndarray[DTYPE_t, ndim=2] G
 
-    if max_num_passes_SGD==0:
-        max_iters = 16*m
-    else:
-        max_iters = max_num_passes_SGD*m
+    max_iters = max_num_passes_SGD*m
 
     if max_norm==0:
         max_norm = 10.*d
@@ -139,7 +134,7 @@ def computeEmbeddingWithEpochSGD(int n, int d,S,double mu, max_num_passes_SGD=0,
 
             if epsilon>0 or verbose:
                 # get losses
-                emp_loss,hinge_loss,log_loss = ck._getLoss(X,S)
+                log_loss = ck._getLoss(X, S)
 
                 # get gradient and check stopping-time statistics
                 G,log_loss,avg_grad_row_norm_sq,max_grad_row_norm_sq,avg_row_norm_sq = ck.getGradient(X,S,mu)
@@ -148,8 +143,7 @@ def computeEmbeddingWithEpochSGD(int n, int d,S,double mu, max_num_passes_SGD=0,
 
                 blackbox.logdict({'iter':t,
                                   'epoch':t_e,
-                                  'emp_loss':emp_loss,
-                                  'hinge_loss':hinge_loss,
+                                  'emp_loss':utils.empirical_lossX(X, S),
                                   'log_loss':log_loss,
                                   'alpha':a})
                 blackbox.save(verbose=verbose)
@@ -178,7 +172,7 @@ def computeEmbeddingWithEpochSGD(int n, int d,S,double mu, max_num_passes_SGD=0,
            if norm_i>max_norm:
                X[i] = X[i] * (max_norm / norm_i)
 
-    return X,rel_max_grad
+    return X
 
 def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iters=0, max_norm=0., epsilon=0.01, c1=0.0001, rho=.7, verbose=False):
     """
@@ -202,10 +196,6 @@ def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iter
 
     Outputs:
         (numpy.ndarray) X : output embedding
-        (float) emp_loss : output 0/1 error
-        (float) hinge_loss : output hinge loss
-        (float) gamma : Equal to a/b where a is max row norm of the gradient matrix and b is the avg row norm of the centered embedding matrix X. This is a means to determine how close the current solution is to the "best" solution.  
-
 
     Usage:
         X,gamma = computeEmbeddingWithGD(X,S)
@@ -220,19 +210,12 @@ def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iter
 
     cdef np.ndarray[DTYPE_t, ndim=2] G
 
-    if max_iters==0:
-        max_iters = 100
-
     if max_norm==0:
         max_norm = 10.*d
 
     alpha = .5*n
     t = 0
     cdef double norm_grad_sq_0 = realmax
-    cdef double emp_loss_0 = realmax
-    cdef double emp_loss_k = realmax
-    cdef double hinge_loss_0 = realmax
-    cdef double hinge_loss_k = realmax
     cdef double log_loss_0 = realmax
     cdef double log_loss_k = realmax
 
@@ -246,8 +229,7 @@ def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iter
         ts = time.time()
         if rel_max_grad < epsilon:
             blackbox.logdict({'iter':t,
-                  'emp_loss':emp_loss_k,
-                  'hinge_loss':hinge_loss_k,
+                  'emp_loss':utils.empirical_lossX(X, S),
                   'log_loss':log_loss_k,
                   'G_norm':norm_grad_sq_0,
                   'rel_avg_grad':rel_avg_grad,
@@ -261,14 +243,14 @@ def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iter
         # perform backtracking line search
         alpha = 2.*alpha
         ts = time.time()
-        emp_loss_0, hinge_loss_0, log_loss_0 = ck._getLoss(X,S)
+        log_loss_0 = ck._getLoss(X,S)
         norm_grad_sq_0 = avg_grad_row_norm_sq*n
-        emp_loss_k, hinge_loss_k, log_loss_k = ck._getLoss(X-alpha*G, S)
+        log_loss_k = ck._getLoss(X-alpha*G, S)
         
         inner_t = 0
         while log_loss_k > log_loss_0 - c1*alpha*norm_grad_sq_0:
             alpha = alpha*rho
-            emp_loss_k,hinge_loss_k,log_loss_k = ck._getLoss(X-alpha*G,S)
+            log_loss_k = ck._getLoss(X-alpha*G,S)
             inner_t += 1
         X  = X - alpha*G
 
@@ -284,8 +266,7 @@ def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iter
         rel_avg_grad = np.sqrt( avg_grad_row_norm_sq / avg_row_norm_sq )
         # save to blackbox
         blackbox.logdict({'iter':t,
-                  'emp_loss':emp_loss_k,
-                  'hinge_loss':hinge_loss_k,
+                  'emp_loss':utils.empirical_lossX(X, S),
                   'log_loss':log_loss_k,
                   'G_norm':norm_grad_sq_0,
                   'rel_avg_grad':rel_avg_grad,
@@ -293,5 +274,5 @@ def computeEmbeddingWithGD(np.ndarray[DTYPE_t, ndim=2] X, S, double mu, max_iter
                   'inner_t': inner_t,
                   'alpha':alpha})
         blackbox.save(verbose=verbose)
-    return X,emp_loss_k,hinge_loss_k,log_loss_k,rel_max_grad
+    return X
 
