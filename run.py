@@ -52,11 +52,13 @@ def run_RankdPGD(n, d, plot=False):
     Mtrue = np.dot(Xtrue, Xtrue.transpose())
     print "Bayes Loss", LogisticLoss.getLossX(Xtrue, all_triplets(Xtrue))
    
-    Strain = utils.triplets(Xtrue, m, logistic_noise)
+    # Strain = utils.triplets(Xtrue, m, logistic_noise)
+    Strain = utils.triplets(Xtrue, m)
     print "Xtrue Empirical Loss", utils.empirical_lossX(Xtrue, Strain)
     print "Strain Log Loss", LogisticLoss.getLossX(Xtrue, Strain)
 
-    Stest = utils.triplets(Xtrue, m, logistic_noise)
+    # Stest = utils.triplets(Xtrue, m, logistic_noise)
+    Stest = utils.triplets(Xtrue, m)
     Mhat = RankdPGD.computeEmbedding(n, d,
                                      Strain,
                                      max_iter_GD=500,
@@ -193,12 +195,12 @@ def run_FG(n, d, plot=False):
     Strain = utils.triplets(Xtrue, m)
     Stest = utils.triplets(Xtrue, m)
 
-    Xhat = FactoredGradientSGD.computeEmbedding(n, d, Strain,
+    Xhat = FactoredGradient.computeEmbedding(n, d, Strain,
                                                 num_random_restarts=0,
                                                 max_num_passes_SGD=16,
-                                                max_iter_GD=50,
+                                                max_iter_GD=100,
                                                 max_norm=max_norm,
-                                                epsilon=0.01, verbose=False)
+                                                epsilon=1e-3, verbose=True)
 
     emp_loss_train = utils.empirical_lossX(Xhat, Strain)
     emp_loss_test = utils.empirical_lossX(Xhat, Stest)
@@ -268,21 +270,21 @@ if __name__ == '__main__':
     # times = []
     # for i in range(1):
     #     ts = time.time()
-    #     run_RankdPGD(20, 2, plot=True)
+    #     run_RankdPGD(20, 2, plot=False)
     #     times.append(time.time() - ts)
     # print 'average execution time - RankdPGD', sum(times) / len(times)
     # blackbox.land()
 
 
-    blackbox.takeoff(('n=30, d=2, max_iters=200'
-                      'epsilon=.00001, 5 runs, NucNorm'), force=True)
-    times = []
-    for i in range(1):
-        ts = time.time()
-        run_CK(60, 3, plot=True)
-        times.append(time.time() - ts)
-    print 'average execution time - RankdCK', sum(times) / len(times)
-    blackbox.land()
+    # blackbox.takeoff(('n=30, d=2, max_iters=200'
+    #                   'epsilon=.00001, 5 runs, NucNorm'), force=True)
+    # times = []
+    # for i in range(1):
+    #     ts = time.time()
+    #     run_CK(60, 3, plot=True)
+    #     times.append(time.time() - ts)
+    # print 'average execution time - RankdCK', sum(times) / len(times)
+    # blackbox.land()
 
     # blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
     # times = []
@@ -293,14 +295,14 @@ if __name__ == '__main__':
     # print 'average execution time - NuclearNormPGD', sum(times) / len(times)
     # blackbox.land()
 
-    # blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
-    # times = []
-    # for i in range(10):
-    #     ts = time.time()
-    #     run_FG(20, 2, plot=True)
-    #     times.append(time.time() - ts)
-    # print 'average execution time - FactoredGradient', sum(times) / len(times)
-    # blackbox.land()
+    blackbox.takeoff('n=30, d=2, m=1000 10 runs, FG', force=True)
+    times = []
+    for i in range(1):
+        ts = time.time()
+        run_FG(100, 2, plot=True)
+        times.append(time.time() - ts)
+    print 'average execution time - FactoredGradient', sum(times) / len(times)
+    blackbox.land()
     
     # blackbox.takeoff('n=30, d=2, m=1000 10 runs, CK', force=True)
     # times = []

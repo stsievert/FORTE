@@ -181,6 +181,8 @@ def computeEmbeddingWithFG(np.ndarray[DTYPE_t, ndim=2] X,S, max_iters=50,max_nor
     cdef int d = X.shape[1]
     # cdef double alpha = 10.
     cdef double emp_loss, log_loss
+    emp_loss = utils.empirical_lossX(X,S)
+    log_loss = LL.getLossX(X,S)
     cdef int t = 0
     cdef int inner_t = 0
     cdef double log_loss_0 = LL.getLossX(X,S)
