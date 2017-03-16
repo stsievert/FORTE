@@ -47,7 +47,7 @@ cpdef inline triplet_scoreM(np.ndarray[DTYPE_t, ndim=2] M,q):
 cpdef inline triplet_scoreX(np.ndarray[DTYPE_t, ndim=2] X,q):
     """
     Given X,q=[i,j,k] returns score = ||x_i - x_k||^2 - ||x_i - x_j||^2
-    If score < 0 then the triplet agrees with the embedding, otherwise it does not 
+    If score > 0 then the triplet agrees with the embedding, otherwise it does not 
     Usage:
         score = getTripletScore(X,[3,4,5])
     """

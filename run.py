@@ -1,12 +1,13 @@
 import time
 import FORTE.utils as utils
-from FORTE.objectives import CrowdKernelLoss, LogisticLoss
+from FORTE.objectives import CrowdKernelLoss, LogisticLoss, L1Loss
 from FORTE.algorithms import (RankdPGD,
                               NuclearNormPGD,
                               FactoredGradient,
                               FactoredGradientSGD,
                               CrowdKernel,
-                              RankdPGDHingeLoss)
+                              RankdPGDHingeLoss,
+                              L1Embedding)
 import blackbox
 import numpy as np
 import matplotlib.pyplot as plt
@@ -195,7 +196,7 @@ def run_FG(n, d, plot=False):
     Strain = utils.triplets(Xtrue, m)
     Stest = utils.triplets(Xtrue, m)
 
-    Xhat = FactoredGradient.computeEmbedding(n, d, Strain,
+    Xhat = FactoredGradientSGD.computeEmbedding(n, d, Strain,
                                                 num_random_restarts=0,
                                                 max_num_passes_SGD=16,
                                                 max_iter_GD=100,
@@ -263,6 +264,55 @@ def run_CK(n, d, plot=False):
 
         plt.show()
 
+def run_L1Embedding(n, d, plot=False):
+    """
+    Creates random data and finds an embedding.
+    Inputs:
+    n: The number of points
+    d: The number of dimensions
+    plot: Whether to plot the points
+    """
+    n = n
+    d = d
+    m = n*n*n
+    # 20 * n * d * np.log(n)  # number of labels
+
+    # Generate centered data points
+    Xtrue = np.random.randn(n, d)
+    #Xtrue = Xtrue - 1. / n * np.dot(np.ones((n, n)),  Xtrue)
+    Mtrue = np.dot(Xtrue, Xtrue.transpose())
+    print "Bayes Loss", L1Loss.l1Loss(Xtrue, all_triplets(Xtrue))
+   
+    # Strain = utils.triplets(Xtrue, m, logistic_noise)
+    Strain = utils.triplets(Xtrue, m)
+    print "Xtrue Empirical Loss", utils.empirical_lossX(Xtrue, Strain)
+    print "Strain L1 Loss", L1Loss.l1Loss(Xtrue, Strain)
+
+    # Stest = utils.triplets(Xtrue, m, logistic_noise)
+    Stest = utils.triplets(Xtrue, m)
+    Xhat = L1Embedding.computeEmbedding(n, d,
+                                         Strain,
+                                         max_iter_GD=500,
+                                         num_random_restarts=0,
+                                         epsilon=0.00001,
+                                         verbose=True)
+    emp_loss_train = utils.empirical_lossX(Xhat, Strain)
+    emp_loss_test = utils.empirical_lossX(Xhat, Stest)
+    _, Xpro, _ = utils.procrustes(Xtrue, Xhat)
+    print ('Empirical Training loss = {},   '
+           'Empirical Test loss = {},   '
+           'Relative Error = {} ').format(emp_loss_train,
+                                          emp_loss_test,
+                                          (np.linalg.norm(Xtrue - Xpro, 'fro')**2 /
+                                           np.linalg.norm(Xtrue, 'fro')**2))
+    if plot:
+        plt.figure(1)
+        plt.subplot(121)
+        plt.plot(*zip(*Xtrue), marker='o', color='r', ls='')
+        plt.subplot(122)
+        plt.plot(*zip(*Xpro), marker='o', color='b', ls='')
+        plt.show()
+
 if __name__ == '__main__':
     # blackbox.set_experiment('TimeTest')
     # blackbox.takeoff(('n=30, d=2, max_iters=200'
@@ -295,14 +345,14 @@ if __name__ == '__main__':
     # print 'average execution time - NuclearNormPGD', sum(times) / len(times)
     # blackbox.land()
 
-    blackbox.takeoff('n=30, d=2, m=1000 10 runs, FG', force=True)
-    times = []
-    for i in range(1):
-        ts = time.time()
-        run_FG(100, 2, plot=True)
-        times.append(time.time() - ts)
-    print 'average execution time - FactoredGradient', sum(times) / len(times)
-    blackbox.land()
+    # blackbox.takeoff('n=30, d=2, m=1000 10 runs, FG', force=True)
+    # times = []
+    # for i in range(1):
+    #     ts = time.time()
+    #     run_FG(20, 2, plot=True)
+    #     times.append(time.time() - ts)
+    # print 'average execution time - FactoredGradient', sum(times) / len(times)
+    # blackbox.land()
     
     # blackbox.takeoff('n=30, d=2, m=1000 10 runs, CK', force=True)
     # times = []
@@ -312,6 +362,15 @@ if __name__ == '__main__':
     #     times.append(time.time() - ts)
     # print 'average execution time - CK', sum(times) / len(times)
     # blackbox.land()
+
+    blackbox.takeoff('n=30, d=2, m=1000 10 runs, L1', force=True)
+    times = []
+    for i in range(1):
+        ts = time.time()
+        run_L1Embedding(20, 2, plot=False)
+        times.append(time.time() - ts)
+    print 'average execution time - FactoredGradient', sum(times) / len(times)
+    blackbox.land()
 
 # n = 30, d = 2, 1000 triplets
 # blackbox no save verbose=True: 56.795

@@ -31,7 +31,7 @@ cdef inline _getLoss(np.ndarray[DTYPE_t, ndim=2] X,list S):
     Returns loss on X with respect to list of triplets S: 1/len(S) \sum_{q in S} loss(X,q).
     Intuitively, q=[i,j,k] "agrees" with X if ||x_j - x_k||^2 > ||x_i - x_k||^2.
 
-    For q=[i,j,k], let s(X,q) = ||x_j - x_k||^2 - ||x_i - x_k||^2
+    For q=[i,j,k], let s(X,q) = ||x_k - x_i||^2 - ||x_j - x_i||^2
     If loss is hinge_loss then loss(X,q) = max(0,1-s(X,q))
     If loss is emp_loss then loss(X,q) = 1 if s(X,q)<0, and 0 otherwise
 
