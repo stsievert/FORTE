@@ -5,6 +5,7 @@ from FORTE.algorithms import (RankdPGD,
                               NuclearNormPGD,
                               FactoredGradient,
                               FactoredGradientSGD,
+                              FactoredGradientSGDHingeLoss,
                               CrowdKernel,
                               RankdPGDHingeLoss,
                               L1Embedding)
@@ -148,13 +149,13 @@ def run_NuclearNormPGD(n, d, plot=False):
     Mtrue = np.dot(Xtrue, Xtrue.transpose())
     max_norm = np.max([np.linalg.norm(Xtrue[i])
                        for i in range(Xtrue.shape[0])])
-    Strain = utils.triplets(Xtrue, m)
-    Stest = utils.triplets(Xtrue, m)
+    Strain = utils.triplets(Xtrue, m, noise_func=None)
+    Stest = utils.triplets(Xtrue, m, noise_func=None)
     Mhat = NuclearNormPGD.computeEmbedding(n, d,
                                            Strain,
                                            max_iter_GD=200,
                                            trace_norm=max_norm,
-                                           epsilon=0.000000001,
+                                           epsilon=1e-10,
                                            verbose=True)
     emp_loss_train = utils.empirical_lossM(Mhat, Strain)
     emp_loss_test = utils.empirical_lossM(Mhat, Stest)
@@ -201,7 +202,7 @@ def run_FG(n, d, plot=False):
                                                 max_num_passes_SGD=16,
                                                 max_iter_GD=100,
                                                 max_norm=max_norm,
-                                                epsilon=1e-3, verbose=True)
+                                                epsilon=5e-3, verbose=True)
 
     emp_loss_train = utils.empirical_lossX(Xhat, Strain)
     emp_loss_test = utils.empirical_lossX(Xhat, Stest)
@@ -315,12 +316,12 @@ def run_L1Embedding(n, d, plot=False):
 
 if __name__ == '__main__':
     # blackbox.set_experiment('TimeTest')
-    # blackbox.takeoff(('n=30, d=2, max_iters=200'
-    #                   'epsilon=.00001, 5 runs, NucNorm'), force=True)
+    blackbox.takeoff(('n=30, d=2, max_iters=200'
+                      'epsilon=.00001, 5 runs, NucNorm'), force=True)
     # times = []
     # for i in range(1):
     #     ts = time.time()
-    #     run_RankdPGD(20, 2, plot=False)
+    #     run_RankdPGDHingeLoss(20, 2, plot=False)
     #     times.append(time.time() - ts)
     # print 'average execution time - RankdPGD', sum(times) / len(times)
     # blackbox.land()
@@ -336,14 +337,14 @@ if __name__ == '__main__':
     # print 'average execution time - RankdCK', sum(times) / len(times)
     # blackbox.land()
 
-    # blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
-    # times = []
-    # for i in range(5):
-    #     ts = time.time()
-    #     run_NuclearNormPGD(30, 2, plot=True)
-    #     times.append(time.time() - ts)
-    # print 'average execution time - NuclearNormPGD', sum(times) / len(times)
-    # blackbox.land()
+    blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
+    times = []
+    for i in range(1):
+        ts = time.time()
+        run_NuclearNormPGD(30, 2, plot=False)
+        times.append(time.time() - ts)
+    print 'average execution time - NuclearNormPGD', sum(times) / len(times)
+    blackbox.land()
 
     # blackbox.takeoff('n=30, d=2, m=1000 10 runs, FG', force=True)
     # times = []
@@ -363,14 +364,14 @@ if __name__ == '__main__':
     # print 'average execution time - CK', sum(times) / len(times)
     # blackbox.land()
 
-    blackbox.takeoff('n=30, d=2, m=1000 10 runs, L1', force=True)
-    times = []
-    for i in range(1):
-        ts = time.time()
-        run_L1Embedding(20, 2, plot=False)
-        times.append(time.time() - ts)
-    print 'average execution time - FactoredGradient', sum(times) / len(times)
-    blackbox.land()
+    # blackbox.takeoff('n=30, d=2, m=1000 10 runs, L1', force=True)
+    # times = []
+    # for i in range(1):
+    #     ts = time.time()
+    #     run_L1Embedding(20, 2, plot=False)
+    #     times.append(time.time() - ts)
+    # print 'average execution time - FactoredGradient', sum(times) / len(times)
+    # blackbox.land()
 
 # n = 30, d = 2, 1000 triplets
 # blackbox no save verbose=True: 56.795
