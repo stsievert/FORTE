@@ -63,7 +63,7 @@ def run_RankdPGD(n, d, plot=False):
     Stest = utils.triplets(Xtrue, m)
     Mhat = RankdPGD.computeEmbedding(n, d,
                                      Strain,
-                                     max_iter_GD=500,
+                                     max_iter_GD=100,
                                      num_random_restarts=0,
                                      epsilon=0.00001,
                                      verbose=True)
@@ -144,8 +144,8 @@ def run_NuclearNormPGD(n, d, plot=False):
     n = n
     d = d
     m = n*n*n
-    Xtrue = np.random.rand(n, d)
-    Xtrue = Xtrue - 1. / n * np.dot(np.ones((n, n)),  Xtrue)
+    Xtrue = np.random.rand(n, d)/np.sqrt(d)
+    # Xtrue = Xtrue - 1. / n * np.dot(np.ones((n, n)),  Xtrue)
     Mtrue = np.dot(Xtrue, Xtrue.transpose())
     max_norm = np.max([np.linalg.norm(Xtrue[i])
                        for i in range(Xtrue.shape[0])])
@@ -154,8 +154,8 @@ def run_NuclearNormPGD(n, d, plot=False):
     Mhat = NuclearNormPGD.computeEmbedding(n, d,
                                            Strain,
                                            max_iter_GD=200,
-                                           trace_norm=max_norm,
-                                           epsilon=1e-10,
+                                           trace_norm=4*np.trace(Mtrue),
+                                           epsilon=1e-12,
                                            verbose=True)
     emp_loss_train = utils.empirical_lossM(Mhat, Strain)
     emp_loss_test = utils.empirical_lossM(Mhat, Stest)
@@ -315,13 +315,14 @@ def run_L1Embedding(n, d, plot=False):
         plt.show()
 
 if __name__ == '__main__':
+    np.random.seed(421)
     # blackbox.set_experiment('TimeTest')
-    blackbox.takeoff(('n=30, d=2, max_iters=200'
-                      'epsilon=.00001, 5 runs, NucNorm'), force=True)
+    # blackbox.takeoff(('n=30, d=2, max_iters=200'
+    #                   'epsilon=.00001, 5 runs, NucNorm'), force=True)
     # times = []
     # for i in range(1):
     #     ts = time.time()
-    #     run_RankdPGDHingeLoss(20, 2, plot=False)
+    #     run_RankdPGD(20, 2, plot=True)
     #     times.append(time.time() - ts)
     # print 'average execution time - RankdPGD', sum(times) / len(times)
     # blackbox.land()
@@ -341,7 +342,7 @@ if __name__ == '__main__':
     times = []
     for i in range(1):
         ts = time.time()
-        run_NuclearNormPGD(30, 2, plot=False)
+        run_NuclearNormPGD(30, 2, plot=True)
         times.append(time.time() - ts)
     print 'average execution time - NuclearNormPGD', sum(times) / len(times)
     blackbox.land()

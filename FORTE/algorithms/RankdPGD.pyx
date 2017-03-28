@@ -20,7 +20,7 @@ ceil = math.ceil
 def computeEmbedding(int n, int d, S,
                      num_random_restarts=0,
                      max_iter_GD=50,
-                     max_norm=1,
+                     max_norm=1.,
                      epsilon=0.01,
                      verbose=False):
     """

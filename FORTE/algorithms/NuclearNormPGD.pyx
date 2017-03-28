@@ -28,7 +28,7 @@ def computeEmbedding(int n, int d, S,
         (int) n : number of objects in embedding
         (int) d : desired dimension
         (list [(int) i, (int) j,(int) k]) S : list of triplets, i,j,k must be in [n].
-        (int) max_iter_GD: maximum number of GD iteration (default equals 500)
+        (int) max_iter_GD: maximum number of GD iteration (default equals 1000)
         (float) trace_norm : the maximum allowed trace norm of the gram matrix
         (float) epsilon : parameter that controls stopping condition, smaller means more accurate (default = 0.01)
         (boolean) verbose : outputs some progress (default equals False)
@@ -118,7 +118,9 @@ def computeEmbeddingWithGD(np.ndarray M,S,int d,
             M_k = projected(M-alpha*G, trace_norm)
             log_loss_k = LL.getLossM( M_k ,S)
             inner_t += 1
-        alpha = 1.2*alpha
+        # alpha = 1.2*alpha
+        if inner_t == 0:
+            alpha = 2*alpha
         M = M_k
         emp_loss = utils.empirical_lossM(M,S)
         blackbox.logdict({'iter':t,
