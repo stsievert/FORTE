@@ -12,6 +12,9 @@ ctypedef np.float64_t DTYPE_t
 
 cimport cython
 
+def logistic_noise(X, q):                   # generate noise according to model
+    score = triplet_scoreX(X,q)
+    return 1./(1. + np.exp(-score))
 
 def random_query(n):
     """
