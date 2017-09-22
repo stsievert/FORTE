@@ -141,9 +141,10 @@ def run_NuclearNormPGD(n, d, plot=False):
     d: The number of dimensions
     plot: Whether to plot the points
     """
+    print('Here')
     n = n
     d = d
-    m = n*n*n
+    m = n*n
     Xtrue = np.random.rand(n, d)/np.sqrt(d)
     # Xtrue = Xtrue - 1. / n * np.dot(np.ones((n, n)),  Xtrue)
     Mtrue = np.dot(Xtrue, Xtrue.transpose())
@@ -151,6 +152,20 @@ def run_NuclearNormPGD(n, d, plot=False):
                        for i in range(Xtrue.shape[0])])
     Strain = utils.triplets(Xtrue, m, noise_func=None)
     Stest = utils.triplets(Xtrue, m, noise_func=None)
+
+    ts = time.time()
+    b = 0
+    total = 0
+    for i in range(n):
+        for j in range(i):
+            for k in range(n):
+                if i!=j and i!=k and j!=k:
+                    p = 1/(1+np.exp(-(Mtrue[k,k] -2*Mtrue[i,k] + 2*Mtrue[i,j] - Mtrue[j,j])))
+                    b += -p*np.log(p)
+                    total += 1 
+    b = b/total
+    print time.time() - ts
+    print('Bayes loss: ', b)
     Mhat = NuclearNormPGD.computeEmbedding(n, d,
                                            Strain,
                                            max_iter_GD=200,
@@ -194,10 +209,10 @@ def run_FG(n, d, plot=False):
     max_norm = np.max([np.linalg.norm(Xtrue[i])
                        for i in range(Xtrue.shape[0])])
 
-    Strain = utils.triplets(Xtrue, m)
-    Stest = utils.triplets(Xtrue, m)
+    Strain = utils.triplets(Xtrue, m, noise_func=logistic_noise)
+    Stest = utils.triplets(Xtrue, m, noise_func=logistic_noise)
 
-    Xhat = FactoredGradientSGD.computeEmbedding(n, d, Strain,
+    Xhat = FactoredGradientSGDHingeLoss.computeEmbedding(n, d, Strain,
                                                 num_random_restarts=0,
                                                 max_num_passes_SGD=16,
                                                 max_iter_GD=100,
@@ -231,21 +246,23 @@ def run_CK(n, d, plot=False):
     """
     n = n
     d = d
-    m = n*n*n#10 * n * d * np.log(n)  # number of labels
+    m = int(10 * n * d * np.log(n))  # number of labels
     # Generate centered data points
     Xtrue = np.random.randn(n, d)
     print "CK Loss - Bayes", CrowdKernelLoss.getLoss(Xtrue, all_triplets(Xtrue))
-    Strain = utils.triplets(Xtrue, m, ck_noise)
+    # Strain = utils.triplets(Xtrue, m, ck_noise)
+    Strain = utils.triplets(Xtrue, m, None)
     print "Empirical Loss on Strain", utils.empirical_lossX(Xtrue, Strain)
     print "CK Loss on Strain", CrowdKernelLoss.getLoss(Xtrue, Strain)
 
-    Stest = utils.triplets(Xtrue, m, ck_noise)
+    # Stest = utils.triplets(Xtrue, m, ck_noise)
+    Stest = utils.triplets(Xtrue, m, None)
     Xhat = CrowdKernel.computeEmbedding(n, d, 
                                         Strain,
                                         mu=mu,
                                         num_random_restarts=0,
-                                        max_num_passes_SGD=0,
-                                        max_iter_GD=300,
+                                        max_num_passes_SGD=16,
+                                        max_iter_GD=50,
                                         max_norm=1., 
                                         epsilon=0.0001, verbose=True)
 
@@ -333,28 +350,29 @@ if __name__ == '__main__':
     # times = []
     # for i in range(1):
     #     ts = time.time()
-    #     run_CK(60, 3, plot=True)
+    #     run_CK(60, 3, plot=False)
     #     times.append(time.time() - ts)
     # print 'average execution time - RankdCK', sum(times) / len(times)
+    blackbox.land()
+
+    # blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
+    # times = []
+    # print('Running')
+    # for i in range(1):
+    #     ts = time.time()
+    #     run_NuclearNormPGD(200, 10, plot=False)
+    #     times.append(time.time() - ts)
+    # print 'average execution time - NuclearNormPGD', sum(times) / len(times)
     # blackbox.land()
 
-    blackbox.takeoff('n=30, d=2, m=1000 10 runs, NucNorm', force=True)
+    blackbox.takeoff('n=30, d=2, m=1000 10 runs, FG', force=True)
     times = []
     for i in range(1):
         ts = time.time()
-        run_NuclearNormPGD(30, 2, plot=True)
+        run_FG(20, 2, plot=False)
         times.append(time.time() - ts)
-    print 'average execution time - NuclearNormPGD', sum(times) / len(times)
+    print 'average execution time - FactoredGradient', sum(times) / len(times)
     blackbox.land()
-
-    # blackbox.takeoff('n=30, d=2, m=1000 10 runs, FG', force=True)
-    # times = []
-    # for i in range(1):
-    #     ts = time.time()
-    #     run_FG(20, 2, plot=True)
-    #     times.append(time.time() - ts)
-    # print 'average execution time - FactoredGradient', sum(times) / len(times)
-    # blackbox.land()
     
     # blackbox.takeoff('n=30, d=2, m=1000 10 runs, CK', force=True)
     # times = []

@@ -48,12 +48,12 @@ def computeEmbedding(int n, int d, S, mu=.01, num_random_restarts=0,max_num_pass
     while num_restarts < num_random_restarts:
         num_restarts += 1
         
-        print "Epoch SGD"
+        # print "Epoch SGD"
         ts = time.time()
         X = computeEmbeddingWithEpochSGD(n,d,S,mu,max_num_passes_SGD=max_num_passes_SGD,epsilon=0.,verbose=verbose)
         te_sgd = time.time()-ts
         
-        print "Gradient Descent"
+        # print "Gradient Descent"
         ts = time.time()
         X_new = computeEmbeddingWithGD(X, S, mu, 
                                             max_iters=max_iter_GD, 
