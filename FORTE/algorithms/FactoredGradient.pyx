@@ -19,7 +19,7 @@ norm = np.linalg.norm
 @blackbox.record
 def computeEmbedding(int n, int d,S,num_random_restarts=0,
                     max_num_passes_SGD=16,max_iter_GD=50,
-                    max_norm=1,epsilon=0.01,verbose=False):
+                    max_norm=1,epsilon=0.01,verbose=False, seed=0):
     """
     Computes an embedding of n objects in d dimensions usin the triplets of S.
     S is a list of triplets such that for each q in S, q = [i,j,k] means that

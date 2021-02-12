@@ -1,13 +1,6 @@
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
-try:
-    from Cython.Build import cythonize
-except ImportError:
-    from pip import pip
-
-    pip.main(['install', 'cython'])
-
-    from Cython.Build import cythonize
+from Cython.Build import cythonize
 import numpy as np
 
 setup(

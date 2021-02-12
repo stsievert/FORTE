@@ -19,7 +19,7 @@ norm = np.linalg.norm
 @blackbox.record
 def computeEmbedding(int n, int d,S,num_random_restarts=0,
                     max_num_passes_SGD=16,max_iter_GD=50,
-                    max_norm=1,epsilon=0.01,verbose=False):
+                    max_norm=1,epsilon=0.01,verbose=False, seed=1):
     """
     Computes an embedding of n objects in d dimensions usin the triplets of S.
     S is a list of triplets such that for each q in S, q = [i,j,k] means that
@@ -39,7 +39,8 @@ def computeEmbedding(int n, int d,S,num_random_restarts=0,
     Outputs:
         (numpy.ndarray) X : output embedding  
     """
-    X = np.random.rand(n,d)
+    rng = np.random.RandomState(seed)
+    X = rng.rand(n,d)
     X_old = None
     cdef double emp_loss_old = float('inf')
     for restart in range(num_random_restarts + 1):
@@ -50,7 +51,9 @@ def computeEmbedding(int n, int d,S,num_random_restarts=0,
                                              max_num_passes=max_num_passes_SGD,
                                              max_norm=max_norm,
                                              epsilon=epsilon,
-                                             verbose=verbose)
+                                             verbose=verbose, seed=restart + seed,
+                                           a=0.01,
+                                           )
         te_sgd = time()-ts
         ts = time()
         X_new,emp_loss_new,log_loss_new, _ = computeEmbeddingWithFG(X,S,
@@ -69,7 +72,7 @@ def computeEmbedding(int n, int d,S,num_random_restarts=0,
                                                           te_sgd,te_gd)
     return X_old
 
-def computeEmbeddingWithEpochSGD(int n,int d,S,max_num_passes=0,max_norm=0,epsilon=0.001,a=1,verbose=False):
+def computeEmbeddingWithEpochSGD(int n,int d,S,max_num_passes=0,max_norm=0,epsilon=0.001,a=1,verbose=False, seed=42):
     """
     Performs epochSGD where step size is constant across each epoch, epochs are 
     doubling in size, and step sizes are getting cut in half after each epoch.
@@ -98,7 +101,8 @@ def computeEmbeddingWithEpochSGD(int n,int d,S,max_num_passes=0,max_norm=0,epsil
     cdef int i,j,k 
     cdef double score, outer_loss
     # norm of each object is equal to 1 in expectation
-    cdef np.ndarray[DTYPE_t, ndim=2] X = np.random.randn(n,d)
+    rng = np.random.RandomState(seed)
+    cdef np.ndarray[DTYPE_t, ndim=2] X = rng.randn(n,d)
     if max_num_passes==0:
         max_iters = 16*m
     else:
@@ -136,7 +140,7 @@ def computeEmbeddingWithEpochSGD(int n,int d,S,max_num_passes=0,max_norm=0,epsil
                 if rel_max_grad < epsilon:
                     break
         # get random triplet unifomrly at random
-        q = S[np.random.randint(m)]
+        q = S[rng.randint(m)]
         i,j,k = q
         score = np.dot(X[k],X[k]) -2*np.dot(X[i],X[k]) + 2*np.dot(X[i],X[j]) - np.dot(X[j],X[j])
         outer_loss = 1./(1.+c_exp(score))

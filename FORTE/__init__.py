@@ -1,5 +1,5 @@
 __all__ = ['algorithms', 'objectives', 'utils']
 
-import objectives
-import algorithms
-import utils
+from . import objectives
+from . import algorithms
+from . import utils
